@@ -1,4 +1,3 @@
-"use strict";
 /* ------------
    Globals.ts
 
@@ -41,6 +40,7 @@ var _StdOut = null;
 // UI
 var _Console;
 var _OsShell;
+var _Status = "I love operating systems";
 // At least this OS is not trying to kill you. (Yet.)
 var _SarcasticMode = false;
 // Global Device Driver Objects - page 12

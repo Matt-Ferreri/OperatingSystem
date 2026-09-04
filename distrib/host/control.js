@@ -1,4 +1,3 @@
-"use strict";
 /* ------------
      Control.ts
 
@@ -35,6 +34,10 @@ var TSOS;
             // Set focus on the start button.
             // Use the TypeScript cast to HTMLInputElement
             document.getElementById("btnStartOS").focus();
+            // Initialize the task bar status and keep the date/time current.
+            Control.hostUpdateTaskBarStatus(_Status);
+            Control.hostUpdateTaskBarDateTime();
+            setInterval(Control.hostUpdateTaskBarDateTime, 1000);
             // Check for our testing and enrichment core, which
             // may be referenced here (from index.html) as function Glados().
             if (typeof Glados === "function") {
@@ -42,6 +45,19 @@ var TSOS;
                 // the global (and properly capitalized) _GLaDOS variable.
                 _GLaDOS = new Glados();
                 _GLaDOS.init();
+            }
+        }
+        static hostUpdateTaskBarDateTime() {
+            var dateTimeElement = document.getElementById("taskBarDateTime");
+            if (dateTimeElement) {
+                dateTimeElement.textContent = new Date().toLocaleString();
+            }
+        }
+        static hostUpdateTaskBarStatus(status) {
+            _Status = status;
+            var statusElement = document.getElementById("taskBarStatus");
+            if (statusElement) {
+                statusElement.textContent = _Status;
             }
         }
         static hostLog(msg, source = "?") {

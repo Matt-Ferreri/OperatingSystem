@@ -3,9 +3,13 @@
 <head>
    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
    <meta name="author"             content="Alan G. Labouseur" />
+   <meta name="viewport"           content="width=device-width, initial-scale=1" />
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
    <link rel="stylesheet" href="tsos.css" type="text/css" media="screen" />
    <title>
-      TSOS - a browser-based virtual Operating System in TypeScript
+      Operating System — Host Console
    </title>
 
    <!-- Globals CONSTANTS and _Variables. Must included be first. -->
@@ -37,76 +41,103 @@
 
 <body onload="onDocumentLoad()">
 
-<div id="divMain" style="width:100%;">
+<div id="divMain">
 
-   <div id="divButtonBar" style="margin:4px;">
-      <input type="button"
-             id = "btnStartOS"
-             name="brnStartOS"
-             class="normal_button"
-             value="Start"
-             tabindex="0"
-             onclick="TSOS.Control.hostBtnStartOS_click(this);">
+   <header class="host-header">
+      <div class="host-brand">
+         <span class="host-mark">OS</span>
+         <div>
+            <h1>Operating System</h1>
+            <p class="host-subtitle">Browser-hosted virtual machine</p>
+         </div>
+      </div>
+      <div id="divButtonBar" class="host-controls">
+         <input type="button"
+                id="btnStartOS"
+                name="brnStartOS"
+                class="host-btn host-btn-start"
+                value="Start"
+                tabindex="0"
+                onclick="TSOS.Control.hostBtnStartOS_click(this);">
 
-      <input type="button"
-             id = "btnHaltOS"
-             name="brnHaltOS"
-             class="normal_button"
-             disabled="disabled"
-             value="Halt"
-             tabindex="1"
-             onclick="TSOS.Control.hostBtnHaltOS_click(this);">
+         <input type="button"
+                id="btnHaltOS"
+                name="brnHaltOS"
+                class="host-btn"
+                disabled="disabled"
+                value="Halt"
+                tabindex="1"
+                onclick="TSOS.Control.hostBtnHaltOS_click(this);">
 
-      <input type="button"
-             id = "btnReset"
-             name="brnReset"
-             class="normal_button"
-             disabled="disabled"
-             value="Reset"
-             tabindex="2"
-             onclick="TSOS.Control.hostBtnReset_click(this);">
+         <input type="button"
+                id="btnReset"
+                name="brnReset"
+                class="host-btn"
+                disabled="disabled"
+                value="Reset"
+                tabindex="2"
+                onclick="TSOS.Control.hostBtnReset_click(this);">
+      </div>
+   </header>
+
+   <div id="divTaskBar">
+      <div class="taskbar-status-wrap">
+         <span class="taskbar-label">Status</span>
+         <span id="taskBarStatus">I love operating systems</span>
+      </div>
+      <div class="taskbar-clock-wrap">
+         <span class="taskbar-label">Clock</span>
+         <span id="taskBarDateTime"></span>
+      </div>
    </div>
 
-   <div id="divConsole" style="margin:4px; width:500px; height:500px; float:left;">
-      <canvas id="display"
-              width="500px"
-              height="500px"
-              tabindex="3">
-      </canvas>
+   <div class="host-workspace">
+      <section id="divConsole" class="panel panel-console" aria-label="OS Console">
+         <div class="panel-header">
+            <h2>Console</h2>
+            <span class="panel-hint">Click Start, then type shell commands here</span>
+         </div>
+         <canvas id="display"
+                 width="500"
+                 height="500"
+                 tabindex="3">
+         </canvas>
+      </section>
+
+      <aside class="host-side">
+         <section id="divLog" class="panel" aria-label="Host Log">
+            <div class="panel-header">
+               <h2>Host Log</h2>
+            </div>
+            <label class="sr-only" for="taHostLog">Host Log</label>
+            <textarea name="taHostLog"
+                      id="taHostLog"
+                      rows="18"
+                      spellcheck="false"
+            ></textarea>
+         </section>
+
+         <section id="divUserProgramInput" class="panel" aria-label="User Program Input">
+            <div class="panel-header">
+               <h2>User Program Input</h2>
+            </div>
+            <label class="sr-only" for="taProgramInput">User Program Input</label>
+            <textarea name="taProgramInput"
+                      id="taProgramInput"
+                      rows="8"
+                      spellcheck="false"
+                      placeholder="Paste hex programs here later..."
+            ></textarea>
+         </section>
+      </aside>
    </div>
 
-   <div id="divLog" style="margin-left:520px;">
-      <label>
-         Host Log
-         <br>
-         <textarea name="taHostLog"
-                   id  ="taHostLog"
-                   rows="26"
-                   cols="48"
-         ></textarea>
-      </label>
-   </div>
-
-   <div id="divUserProgramInput" style="margin-left:520px;">
-      <label>
-         User Program Input
-         <br>
-         <textarea name="taProgramInput"
-                   id  ="taProgramInput"
-                   rows="8"
-                   cols="48"
-         ></textarea>
-      </label>
-   </div>
+   <p class="footerText">
+      Copyright &copy; 2008 - 2112 No Rights Reserved.
+      Reproduction is inhibited without the express written consent of
+      Ted Codd, Stevie Ray Vaughan, Neil Peart, and Ian Fleming.
+   </p>
 </div>
-
-<p class="footerText" style="clear:both;">
-   <br>
-   Copyright &copy; 2008 - 2112 No Rights Reserved.
-   <br>
-   Reproduction is inhibited without the express written consent of
-   Ted Codd, Stevie Ray Vaughan, Neil Peart, and Ian Fleming.
-</p>
 
 </body>
 </html>

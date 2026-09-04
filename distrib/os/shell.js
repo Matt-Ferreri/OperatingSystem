@@ -1,4 +1,3 @@
-"use strict";
 /* ------------
    Shell.ts
 
@@ -57,6 +56,9 @@ var TSOS;
             this.commandList[this.commandList.length] = sc;
             // whoami - displays the current user creatively
             sc = new TSOS.ShellCommand(this.shellWhoami, "whoami", "- Displays the current user sort of.");
+            this.commandList[this.commandList.length] = sc;
+            // status <string> - updates the task bar status message
+            sc = new TSOS.ShellCommand(this.shellStatus, "status", "<string> - Sets the task bar status message.");
             this.commandList[this.commandList.length] = sc;
             // ps  - list the running processes and their IDs
             // kill <id> - kills the specified process id.
@@ -264,6 +266,15 @@ var TSOS;
         }
         shellWhoami(args) {
             _StdOut.putText("LOL no one cares, but I hope your OS is almost done.");
+        }
+        shellStatus(args) {
+            if (args.length > 0) {
+                TSOS.Control.hostUpdateTaskBarStatus(args.join(" "));
+                _StdOut.putText("Status updated.");
+            }
+            else {
+                _StdOut.putText("Usage: status <string>  Please supply a status message.");
+            }
         }
         shellRot13(args) {
             if (args.length > 0) {

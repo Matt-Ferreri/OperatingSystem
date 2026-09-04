@@ -1,4 +1,3 @@
-"use strict";
 /* ----------------------------------
    DeviceDriverKeyboard.ts
 

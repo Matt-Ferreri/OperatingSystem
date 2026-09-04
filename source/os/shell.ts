@@ -97,6 +97,12 @@ module TSOS {
                                   "- Displays the current user sort of.");
             this.commandList[this.commandList.length] = sc;
 
+            // status <string> - updates the task bar status message
+            sc = new ShellCommand(this.shellStatus,
+                                  "status",
+                                  "<string> - Sets the task bar status message.");
+            this.commandList[this.commandList.length] = sc;
+
 
             // ps  - list the running processes and their IDs
             // kill <id> - kills the specified process id.
@@ -317,6 +323,15 @@ module TSOS {
 
         public shellWhoami(args: string[]) {
             _StdOut.putText("LOL no one cares, but I hope your OS is almost done.");
+        }
+
+        public shellStatus(args: string[]) {
+            if (args.length > 0) {
+                Control.hostUpdateTaskBarStatus(args.join(" "));
+                _StdOut.putText("Status updated.");
+            } else {
+                _StdOut.putText("Usage: status <string>  Please supply a status message.");
+            }
         }
 
         public shellRot13(args: string[]) {
