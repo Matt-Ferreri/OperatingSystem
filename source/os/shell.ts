@@ -73,6 +73,31 @@ module TSOS {
                                   "<string> - Sets the prompt.");
             this.commandList[this.commandList.length] = sc;
 
+            // date - displays the current date and time
+            sc = new ShellCommand(this.shellDate,
+                                  "date",
+                                  "- Displays the current date and time.");
+            this.commandList[this.commandList.length] = sc;
+
+            // whereami - somewhat displays current location
+            sc = new ShellCommand(this.shellWhereami,
+                                  "whereami",
+                                  "- Displays the current location.");
+            this.commandList[this.commandList.length] = sc;
+
+            // inspire - displays a random quote from an athlete
+            sc = new ShellCommand(this.shellInspire,
+                                  "inspire",
+                                  "- Displays a random quote from an athlete.");
+            this.commandList[this.commandList.length] = sc;
+
+            // whoami - displays the current user creatively
+            sc = new ShellCommand(this.shellWhoami,
+                                  "whoami",
+                                  "- Displays the current user sort of.");
+            this.commandList[this.commandList.length] = sc;
+
+
             // ps  - list the running processes and their IDs
             // kill <id> - kills the specified process id.
 
@@ -265,6 +290,33 @@ module TSOS {
             } else {
                 _StdOut.putText("Usage: trace <on | off>");
             }
+        }
+        public shellDate(args: string[]) {
+            _StdOut.putText(new Date().toLocaleString());
+        }
+
+        public shellWhereami(args: string[]) {
+            _StdOut.putText("You are currently in McDonalds. Please get me a Big Mac.");
+        }
+        public shellInspire(args: string[]) {
+            var quotes = [
+                "Never let the fear of striking out keep you from playing the game. - Babe Ruth",
+                "I don't think limits. - Usain Bolt",
+                "You can't put a limit on anything. The more you dream, the farther you get. - Michael Phelps",
+                "I've failed over and over and over again in my life. And that is why I succeed. - Michael Jordan",
+                "It's hard to beat a person who never gives up. - Babe Ruth",
+                "I hated every minute of training, but I said, 'Don't quit. Suffer now and live the rest of your life as a champion.' - Muhammad Ali",
+                "You miss 100% of the shots you don't take. - Wayne Gretzky",
+                "The more difficult the victory, the greater the happiness in winning. - Pele",
+                "I am building a fire, and every day I train, I add more fuel. At just the right moment, I light the match. - Mia Hamm",
+                "Success is no accident. It is hard work, perseverance, learning, studying, sacrifice and most of all, love of what you are doing. - Pele"
+            ];
+            var index = Math.floor(Math.random() * quotes.length);
+            _StdOut.putText(quotes[index]);
+        } 
+
+        public shellWhoami(args: string[]) {
+            _StdOut.putText("LOL no one cares, but I hope your OS is almost done.");
         }
 
         public shellRot13(args: string[]) {
