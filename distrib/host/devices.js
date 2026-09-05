@@ -1,3 +1,4 @@
+"use strict";
 /* ------------
      Devices.ts
 
