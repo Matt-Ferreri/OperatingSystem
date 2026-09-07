@@ -27,86 +27,92 @@ module TSOS {
 
             // ver
             sc = new ShellCommand(this.shellVer,
-                                  "ver",
-                                  "- Displays the current version data.");
+                "ver",
+                "- Displays the current version data.");
             this.commandList[this.commandList.length] = sc;
 
             // help
             sc = new ShellCommand(this.shellHelp,
-                                  "help",
-                                  "- This is the help command. Seek help.");
+                "help",
+                "- This is the help command. Seek help.");
             this.commandList[this.commandList.length] = sc;
 
             // shutdown
             sc = new ShellCommand(this.shellShutdown,
-                                  "shutdown",
-                                  "- Shuts down the virtual OS but leaves the underlying host / hardware simulation running.");
+                "shutdown",
+                "- Shuts down the virtual OS but leaves the underlying host / hardware simulation running.");
             this.commandList[this.commandList.length] = sc;
 
             // cls
             sc = new ShellCommand(this.shellCls,
-                                  "cls",
-                                  "- Clears the screen and resets the cursor position.");
+                "cls",
+                "- Clears the screen and resets the cursor position.");
             this.commandList[this.commandList.length] = sc;
 
             // man <topic>
             sc = new ShellCommand(this.shellMan,
-                                  "man",
-                                  "<topic> - Displays the MANual page for <topic>.");
+                "man",
+                "<topic> - Displays the MANual page for <topic>.");
             this.commandList[this.commandList.length] = sc;
 
             // trace <on | off>
             sc = new ShellCommand(this.shellTrace,
-                                  "trace",
-                                  "<on | off> - Turns the OS trace on or off.");
+                "trace",
+                "<on | off> - Turns the OS trace on or off.");
             this.commandList[this.commandList.length] = sc;
 
             // rot13 <string>
             sc = new ShellCommand(this.shellRot13,
-                                  "rot13",
-                                  "<string> - Does rot13 obfuscation on <string>.");
+                "rot13",
+                "<string> - Does rot13 obfuscation on <string>.");
             this.commandList[this.commandList.length] = sc;
 
             // prompt <string>
             sc = new ShellCommand(this.shellPrompt,
-                                  "prompt",
-                                  "<string> - Sets the prompt.");
+                "prompt",
+                "<string> - Sets the prompt.");
             this.commandList[this.commandList.length] = sc;
 
             // date - displays the current date and time
             sc = new ShellCommand(this.shellDate,
-                                  "date",
-                                  "- Displays the current date and time.");
+                "date",
+                "- Displays the current date and time.");
             this.commandList[this.commandList.length] = sc;
 
             // whereami - somewhat displays current location
             sc = new ShellCommand(this.shellWhereami,
-                                  "whereami",
-                                  "- Displays the current location.");
+                "whereami",
+                "- Displays the current location.");
             this.commandList[this.commandList.length] = sc;
 
             // inspire - displays a random quote from an athlete
             sc = new ShellCommand(this.shellInspire,
-                                  "inspire",
-                                  "- Displays a random quote from an athlete.");
+                "inspire",
+                "- Displays a random quote from an athlete.");
             this.commandList[this.commandList.length] = sc;
 
             // whoami - displays the current user creatively
             sc = new ShellCommand(this.shellWhoami,
-                                  "whoami",
-                                  "- Displays the current user sort of.");
+                "whoami",
+                "- Displays the current user sort of.");
             this.commandList[this.commandList.length] = sc;
 
             // status <string> - updates the task bar status message
             sc = new ShellCommand(this.shellStatus,
-                                  "status",
-                                  "<string> - Sets the task bar status message.");
+                "status",
+                "<string> - Sets the task bar status message.");
             this.commandList[this.commandList.length] = sc;
 
             // bsod - intentionally crash the OS to test the trap / BSOD screen
             sc = new ShellCommand(this.shellBsod,
-                                  "bsod",
-                                  "- Triggers a kernel trap and displays the BSOD.");
+                "bsod",
+                "- Triggers a kernel trap and displays the BSOD.");
+            this.commandList[this.commandList.length] = sc;
+
+            // load - validates user program input as hex byte pairs
+            sc = new ShellCommand(this.shellLoad,
+                                  "load",
+                                  "- Loads a user program (hex byte pairs separated by spaces).");
             this.commandList[this.commandList.length] = sc;
 
 
@@ -231,14 +237,14 @@ module TSOS {
         }
 
         public shellApology() {
-           if (_SarcasticMode) {
-              _StdOut.putText("I think we can put our differences behind us.");
-              _StdOut.advanceLine();
-              _StdOut.putText("For science . . . You monster.");
-              _SarcasticMode = false;
-           } else {
-              _StdOut.putText("For what?");
-           }
+            if (_SarcasticMode) {
+                _StdOut.putText("I think we can put our differences behind us.");
+                _StdOut.advanceLine();
+                _StdOut.putText("For science . . . You monster.");
+                _SarcasticMode = false;
+            } else {
+                _StdOut.putText("For what?");
+            }
         }
 
         // Although args is unused in some of these functions, it is always provided in the 
@@ -257,14 +263,14 @@ module TSOS {
         }
 
         public shellShutdown(args: string[]) {
-             _StdOut.putText("Shutting down...");
-             // Call Kernel shutdown routine.
+            _StdOut.putText("Shutting down...");
+            // Call Kernel shutdown routine.
             _Kernel.krnShutdown();
             // TODO: Stop the final prompt from being displayed. If possible. Not a high priority. (Damn OCD!)
         }
 
-        public shellCls(args: string[]) {         
-            _StdOut.clearScreen();     
+        public shellCls(args: string[]) {
+            _StdOut.clearScreen();
             _StdOut.resetXY();
         }
 
@@ -329,7 +335,7 @@ module TSOS {
             ];
             var index = Math.floor(Math.random() * quotes.length);
             _StdOut.putText(quotes[index]);
-        } 
+        }
 
         public shellWhoami(args: string[]) {
             _StdOut.putText("LOL no one cares, but I hope your OS is almost done.");
@@ -348,10 +354,22 @@ module TSOS {
             _Kernel.krnTrapError("User requested BSOD. Yo, Adrian!");
         }
 
+        public shellLoad(args: string[]) {
+            var input = (<HTMLTextAreaElement>document.getElementById("taProgramInput")).value.trim();
+            // Require space-separated byte pairs, e.g. "FF 0F 45" (not "4 f 5f").
+            var isValid = /^[0-9a-fA-F]{2}( [0-9a-fA-F]{2})*$/.test(input);
+            if (isValid) {
+                _StdOut.putText("Program loaded successfully.");
+            } else {
+                _StdOut.putText("Invalid user program. Use hex byte pairs separated by spaces.");
+            }
+        }
+
+
         public shellRot13(args: string[]) {
             if (args.length > 0) {
                 // Requires Utils.ts for rot13() function.
-                _StdOut.putText(args.join(' ') + " = '" + Utils.rot13(args.join(' ')) +"'");
+                _StdOut.putText(args.join(' ') + " = '" + Utils.rot13(args.join(' ')) + "'");
             } else {
                 _StdOut.putText("Usage: rot13 <string>  Please supply a string.");
             }

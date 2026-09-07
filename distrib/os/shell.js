@@ -64,6 +64,9 @@ var TSOS;
             // bsod - intentionally crash the OS to test the trap / BSOD screen
             sc = new TSOS.ShellCommand(this.shellBsod, "bsod", "- Triggers a kernel trap and displays the BSOD.");
             this.commandList[this.commandList.length] = sc;
+            // load - validates user program input as hex byte pairs
+            sc = new TSOS.ShellCommand(this.shellLoad, "load", "- Loads a user program (hex byte pairs separated by spaces).");
+            this.commandList[this.commandList.length] = sc;
             // ps  - list the running processes and their IDs
             // kill <id> - kills the specified process id.
             // Display the initial prompt.
@@ -286,6 +289,17 @@ var TSOS;
         }
         shellBsod(args) {
             _Kernel.krnTrapError("User requested BSOD. Yo, Adrian!");
+        }
+        shellLoad(args) {
+            var input = document.getElementById("taProgramInput").value.trim();
+            // Require space-separated byte pairs, e.g. "FF 0F 45" (not "4 f 5f").
+            var isValid = /^[0-9a-fA-F]{2}( [0-9a-fA-F]{2})*$/.test(input);
+            if (isValid) {
+                _StdOut.putText("Program loaded successfully.");
+            }
+            else {
+                _StdOut.putText("Invalid user program. Use hex byte pairs separated by spaces.");
+            }
         }
         shellRot13(args) {
             if (args.length > 0) {
