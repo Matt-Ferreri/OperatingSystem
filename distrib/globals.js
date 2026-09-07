@@ -44,6 +44,8 @@ var _OsShell;
 var _Status = "I love operating systems";
 // At least this OS is not trying to kill you. (Yet.)
 var _SarcasticMode = false;
+// Set when the kernel traps a fatal OS error (BSOD).
+var _KernelTrapped = false;
 // Global Device Driver Objects - page 12
 var _krnKeyboardDriver = null;
 var _hardwareClockID = null;

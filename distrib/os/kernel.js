@@ -150,8 +150,73 @@ var TSOS;
         }
         krnTrapError(msg) {
             TSOS.Control.hostLog("OS ERROR - TRAP: " + msg);
-            // TODO: Display error on console, perhaps in some sort of colored screen. (Maybe blue?)
+            _KernelTrapped = true;
+            this.krnDrawBSOD(msg);
             this.krnShutdown();
+        }
+        krnDrawBSOD(msg) {
+            // Yo, Adrian... the kernel just got knocked out.
+            var ctx = _DrawingContext;
+            var w = _Canvas.width;
+            var h = _Canvas.height;
+            var cx = w / 2;
+            // Still a BSOD, but Philly-night blue.
+            ctx.fillStyle = "#001B4D";
+            ctx.fillRect(0, 0, w, h);
+            // The Rocky steps (simple rising blocks).
+            ctx.fillStyle = "#C0C0C0";
+            var stepY = 120;
+            for (var s = 0; s < 6; s++) {
+                var stepW = 60 + s * 28;
+                var stepH = 10;
+                ctx.fillRect(cx - stepW / 2, stepY - s * 12, stepW, stepH);
+            }
+            // Two boxing gloves.
+            this.krnDrawGlove(ctx, cx - 70, 55, true);
+            this.krnDrawGlove(ctx, cx + 70, 55, false);
+            ctx.fillStyle = "#FFFFFF";
+            ctx.textAlign = "center";
+            ctx.font = "bold 18px Courier New, monospace";
+            ctx.fillText("FATAL EXCEPTION 0xADR1AN", cx, 155);
+            ctx.font = "bold 14px Courier New, monospace";
+            ctx.fillText("YO, ADRIAN... I CRASHED!", cx, 180);
+            var lines = [
+                "",
+                "Your OS got knocked down in round 1",
+                "at OS_KERNEL::krnTrapError",
+                "",
+                "STOP: " + String(msg).substring(0, 48),
+                "",
+                "It ain't about how hard you hit.",
+                "It's about how hard you can get hit",
+                "and keep moving forward...",
+                "",
+                "...except this kernel ain't gettin' up.",
+                "",
+                "Cut me, Mick. The OS is done.",
+                "Gonna fly now? Nah. Gonna reboot."
+            ];
+            var y = 205;
+            for (var i = 0; i < lines.length; i++) {
+                ctx.fillText(lines[i], cx, y);
+                y += 17;
+            }
+        }
+        krnDrawGlove(ctx, x, y, left) {
+            // Red Everlast-style glove blob + cuff.
+            ctx.fillStyle = "#CC0000";
+            ctx.beginPath();
+            ctx.arc(x, y, 22, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#990000";
+            ctx.fillRect(x - 10, y + 12, 20, 18);
+            ctx.fillStyle = "#FFD700";
+            ctx.fillRect(x - 10, y + 14, 20, 4);
+            // Tiny highlight so they read as gloves.
+            ctx.fillStyle = "#FF6666";
+            ctx.beginPath();
+            ctx.arc(x + (left ? -6 : 6), y - 6, 6, 0, Math.PI * 2);
+            ctx.fill();
         }
     }
     TSOS.Kernel = Kernel;

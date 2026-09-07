@@ -61,6 +61,9 @@ var TSOS;
             // status <string> - updates the task bar status message
             sc = new TSOS.ShellCommand(this.shellStatus, "status", "<string> - Sets the task bar status message.");
             this.commandList[this.commandList.length] = sc;
+            // bsod - intentionally crash the OS to test the trap / BSOD screen
+            sc = new TSOS.ShellCommand(this.shellBsod, "bsod", "- Triggers a kernel trap and displays the BSOD.");
+            this.commandList[this.commandList.length] = sc;
             // ps  - list the running processes and their IDs
             // kill <id> - kills the specified process id.
             // Display the initial prompt.
@@ -118,6 +121,10 @@ var TSOS;
             _StdOut.advanceLine();
             // ... call the command function passing in the args with some über-cool functional programming ...
             fn(args);
+            // If the kernel trapped (BSOD), do not redraw a prompt over the crash screen.
+            if (_KernelTrapped) {
+                return;
+            }
             // Check to see if we need to advance the line again
             if (_StdOut.currentXPosition > 0) {
                 _StdOut.advanceLine();
@@ -276,6 +283,9 @@ var TSOS;
             else {
                 _StdOut.putText("Usage: status <string>  Please supply a status message.");
             }
+        }
+        shellBsod(args) {
+            _Kernel.krnTrapError("User requested BSOD. Yo, Adrian!");
         }
         shellRot13(args) {
             if (args.length > 0) {
