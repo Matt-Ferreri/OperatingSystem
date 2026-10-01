@@ -2,7 +2,8 @@
      MemoryManager.ts
 
      OS service that places programs into the three fixed memory segments
-     starting at MEMORY_SEGMENT_BASES (0, 256, 512).
+     starting at MEMORY_SEGMENT_BASES (0, 256, 512), assigns PIDs, and
+     creates Process Control Blocks.
      ------------ */
 
 module TSOS {
@@ -10,11 +11,14 @@ module TSOS {
     export class MemoryManager {
 
         private segmentUsed: boolean[] = [false, false, false];
+        private nextPid: number = 0;
+        public residentList: Pcb[] = [];
 
-        // Load program bytes into the next free segment. Returns base address, or -1 on failure.
-        public loadProgram(bytes: number[]): number {
+        // Load program bytes into the next free segment.
+        // Returns the new PCB, or null on failure.
+        public loadProgram(bytes: number[]): Pcb {
             if (bytes.length > MEMORY_SEGMENT_SIZE) {
-                return -1;
+                return null;
             }
 
             var segment = -1;
@@ -25,7 +29,7 @@ module TSOS {
                 }
             }
             if (segment < 0) {
-                return -1;
+                return null;
             }
 
             var base = MEMORY_SEGMENT_BASES[segment];
@@ -39,8 +43,13 @@ module TSOS {
             }
 
             this.segmentUsed[segment] = true;
+
+            var pcb = new Pcb(this.nextPid, base, MEMORY_SEGMENT_SIZE);
+            this.nextPid++;
+            this.residentList.push(pcb);
+
             Control.hostUpdateMemoryDisplay(_Memory.cells);
-            return base;
+            return pcb;
         }
     }
 }

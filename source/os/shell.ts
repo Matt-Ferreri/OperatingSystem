@@ -374,13 +374,13 @@ module TSOS {
                 return;
             }
 
-            var base = _MemoryManager.loadProgram(bytes);
-            if (base < 0) {
+            var pcb = _MemoryManager.loadProgram(bytes);
+            if (!pcb) {
                 _StdOut.putText("No free memory segment. All three slots are in use.");
                 return;
             }
 
-            _StdOut.putText("Program loaded at " + base + " (" + bytes.length + " bytes).");
+            _StdOut.putText("Process with pid " + pcb.pid + " loaded at " + pcb.base + " (" + bytes.length + " bytes).");
         }
 
 

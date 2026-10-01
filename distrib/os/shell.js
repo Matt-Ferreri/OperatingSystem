@@ -307,12 +307,12 @@ var TSOS;
                 _StdOut.putText("Program too large. Max " + MEMORY_SEGMENT_SIZE + " bytes per segment.");
                 return;
             }
-            var base = _MemoryManager.loadProgram(bytes);
-            if (base < 0) {
+            var pcb = _MemoryManager.loadProgram(bytes);
+            if (!pcb) {
                 _StdOut.putText("No free memory segment. All three slots are in use.");
                 return;
             }
-            _StdOut.putText("Program loaded at " + base + " (" + bytes.length + " bytes).");
+            _StdOut.putText("Process " + pcb.pid + " loaded at " + pcb.base + " (" + bytes.length + " bytes).");
         }
         shellRot13(args) {
             if (args.length > 0) {
