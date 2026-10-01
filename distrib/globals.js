@@ -17,6 +17,10 @@ const CPU_CLOCK_INTERVAL = 100; // This is in ms (milliseconds) so 1000 = 1 seco
 const TIMER_IRQ = 0; // Pages 23 (timer), 9 (interrupts), and 561 (interrupt priority).
 // NOTE: The timer is different from hardware/host clock pulses. Don't confuse these.
 const KEYBOARD_IRQ = 1;
+// Host memory layout: one contiguous 768-byte block with three program load bases.
+const MEMORY_SIZE = 768;
+const MEMORY_SEGMENT_SIZE = 256;
+const MEMORY_SEGMENT_BASES = [0, 256, 512]; // 0-255, 256-511, 512-767
 //
 // Global Variables
 // TODO: Make a global object and use that instead of the "_" naming convention in the global namespace.

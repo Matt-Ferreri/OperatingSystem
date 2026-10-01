@@ -39,6 +39,8 @@ var TSOS;
             Control.hostUpdateTaskBarStatus(_Status);
             Control.hostUpdateTaskBarDateTime();
             setInterval(Control.hostUpdateTaskBarDateTime, 1000);
+            // Build the initial memory display (one contiguous block).
+            Control.hostUpdateMemoryDisplay();
             // Check for our testing and enrichment core, which
             // may be referenced here (from index.html) as function Glados().
             if (typeof Glados === "function") {
@@ -60,6 +62,31 @@ var TSOS;
             if (statusElement) {
                 statusElement.textContent = _Status;
             }
+        }
+        // Render memory as one continuous block (0-767).
+        // Program load bases (0, 256, 512) are marked in the table for later use.
+        static hostUpdateMemoryDisplay(memory) {
+            var container = document.getElementById("memoryDisplay");
+            if (!container) {
+                return;
+            }
+            const BYTES_PER_ROW = 8;
+            var html = "<table class='memory-table'><tbody>";
+            for (var addr = 0; addr < MEMORY_SIZE; addr += BYTES_PER_ROW) {
+                var addrHex = addr.toString(16).toUpperCase().padStart(3, "0");
+                var isSegmentBase = MEMORY_SEGMENT_BASES.indexOf(addr) >= 0;
+                var rowClass = isSegmentBase ? " class='mem-segment-base'" : "";
+                html += "<tr" + rowClass + "><td class='mem-addr'>" + addrHex + "</td>";
+                for (var col = 0; col < BYTES_PER_ROW; col++) {
+                    var index = addr + col;
+                    var value = (memory && index < memory.length) ? memory[index] : 0;
+                    var byteHex = (value & 0xFF).toString(16).toUpperCase().padStart(2, "0");
+                    html += "<td>" + byteHex + "</td>";
+                }
+                html += "</tr>";
+            }
+            html += "</tbody></table>";
+            container.innerHTML = html;
         }
         static hostLog(msg, source = "?") {
             // Note the OS CLOCK.
