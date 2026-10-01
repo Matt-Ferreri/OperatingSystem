@@ -31,6 +31,9 @@ const MEMORY_SEGMENT_BASES: number[] = [0, 256, 512]; // 0-255, 256-511, 512-767
 // TODO: Make a global object and use that instead of the "_" naming convention in the global namespace.
 //
 var _CPU: TSOS.Cpu;  // Utilize TypeScript's type annotation system to ensure that _CPU is an instance of the Cpu class.
+var _Memory: TSOS.Memory;
+var _MemoryAccessor: TSOS.MemoryAccessor;
+var _MemoryManager: any = null;
 
 var _OSclock: number = 0;  // Page 23.
 

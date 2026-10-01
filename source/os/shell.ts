@@ -109,10 +109,10 @@ module TSOS {
                 "- Triggers a kernel trap and displays the BSOD.");
             this.commandList[this.commandList.length] = sc;
 
-            // load - validates user program input as hex byte pairs
+            // load - validates user program input and writes it into memory
             sc = new ShellCommand(this.shellLoad,
                                   "load",
-                                  "- Loads a user program (hex byte pairs separated by spaces).");
+                                  "- Loads a user program into memory from the input box.");
             this.commandList[this.commandList.length] = sc;
 
 
@@ -358,11 +358,29 @@ module TSOS {
             var input = (<HTMLTextAreaElement>document.getElementById("taProgramInput")).value.trim();
             // Require space-separated byte pairs, e.g. "FF 0F 45" (not "4 f 5f").
             var isValid = /^[0-9a-fA-F]{2}( [0-9a-fA-F]{2})*$/.test(input);
-            if (isValid) {
-                _StdOut.putText("Program loaded successfully.");
-            } else {
+            if (!isValid) {
                 _StdOut.putText("Invalid user program. Use hex byte pairs separated by spaces.");
+                return;
             }
+
+            var hexBytes = input.split(" ");
+            var bytes: number[] = [];
+            for (var i = 0; i < hexBytes.length; i++) {
+                bytes.push(parseInt(hexBytes[i], 16));
+            }
+
+            if (bytes.length > MEMORY_SEGMENT_SIZE) {
+                _StdOut.putText("Program too large. Max " + MEMORY_SEGMENT_SIZE + " bytes per segment.");
+                return;
+            }
+
+            var base = _MemoryManager.loadProgram(bytes);
+            if (base < 0) {
+                _StdOut.putText("No free memory segment. All three slots are in use.");
+                return;
+            }
+
+            _StdOut.putText("Program loaded at " + base + " (" + bytes.length + " bytes).");
         }
 
 

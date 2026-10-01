@@ -47,7 +47,7 @@ module TSOS {
             Control.hostUpdateTaskBarDateTime();
             setInterval(Control.hostUpdateTaskBarDateTime, 1000);
 
-            // Build the initial memory display (three 256-byte segments).
+            // Build the initial empty memory display.
             Control.hostUpdateMemoryDisplay();
 
             // Check for our testing and enrichment core, which
@@ -141,6 +141,12 @@ module TSOS {
             // ... Create and initialize the CPU (because it's part of the hardware)  ...
             _CPU = new Cpu();  // Note: We could simulate multi-core systems by instantiating more than one instance of the CPU here.
             _CPU.init();       //       There's more to do, like dealing with scheduling and such, but this would be a start. Pretty cool.
+
+            // ... Create and initialize host memory ...
+            _Memory = new Memory();
+            _Memory.init();
+            _MemoryAccessor = new MemoryAccessor();
+            Control.hostUpdateMemoryDisplay(_Memory.cells);
 
             // ... then set the host clock pulse ...
             _hardwareClockID = setInterval(Devices.hostClockPulse, CPU_CLOCK_INTERVAL);

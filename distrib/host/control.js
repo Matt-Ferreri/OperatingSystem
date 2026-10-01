@@ -39,7 +39,7 @@ var TSOS;
             Control.hostUpdateTaskBarStatus(_Status);
             Control.hostUpdateTaskBarDateTime();
             setInterval(Control.hostUpdateTaskBarDateTime, 1000);
-            // Build the initial memory display (one contiguous block).
+            // Build the initial empty memory display.
             Control.hostUpdateMemoryDisplay();
             // Check for our testing and enrichment core, which
             // may be referenced here (from index.html) as function Glados().
@@ -114,6 +114,11 @@ var TSOS;
             // ... Create and initialize the CPU (because it's part of the hardware)  ...
             _CPU = new TSOS.Cpu(); // Note: We could simulate multi-core systems by instantiating more than one instance of the CPU here.
             _CPU.init(); //       There's more to do, like dealing with scheduling and such, but this would be a start. Pretty cool.
+            // ... Create and initialize host memory ...
+            _Memory = new TSOS.Memory();
+            _Memory.init();
+            _MemoryAccessor = new TSOS.MemoryAccessor();
+            Control.hostUpdateMemoryDisplay(_Memory.cells);
             // ... then set the host clock pulse ...
             _hardwareClockID = setInterval(TSOS.Devices.hostClockPulse, CPU_CLOCK_INTERVAL);
             // .. and call the OS Kernel Bootstrap routine.
