@@ -351,7 +351,7 @@ module TSOS {
         }
 
         public shellBsod(args: string[]) {
-            _Kernel.krnTrapError("User requested BSOD. Yo, Adrian!");
+            _Kernel.krnTrapError("User requested kernel trap.");
         }
 
         public shellLoad(args: string[]) {

@@ -288,7 +288,7 @@ var TSOS;
             }
         }
         shellBsod(args) {
-            _Kernel.krnTrapError("User requested BSOD. Yo, Adrian!");
+            _Kernel.krnTrapError("User requested kernel trap.");
         }
         shellLoad(args) {
             var input = document.getElementById("taProgramInput").value.trim();

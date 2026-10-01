@@ -155,68 +155,94 @@ var TSOS;
             this.krnShutdown();
         }
         krnDrawBSOD(msg) {
-            // Yo, Adrian... the kernel just got knocked out.
+            // Theme-matched crash screen (host palette: deep green + mint accent).
             var ctx = _DrawingContext;
             var w = _Canvas.width;
             var h = _Canvas.height;
             var cx = w / 2;
-            // Still a BSOD, but Philly-night blue.
-            ctx.fillStyle = "#001B4D";
+            var mono = "IBM Plex Mono, Consolas, Courier New, monospace";
+            ctx.fillStyle = "#0f1412";
             ctx.fillRect(0, 0, w, h);
-            // The Rocky steps (simple rising blocks).
-            ctx.fillStyle = "#C0C0C0";
-            var stepY = 120;
-            for (var s = 0; s < 6; s++) {
-                var stepW = 60 + s * 28;
-                var stepH = 10;
-                ctx.fillRect(cx - stepW / 2, stepY - s * 12, stepW, stepH);
-            }
-            // Two boxing gloves.
-            this.krnDrawGlove(ctx, cx - 70, 55, true);
-            this.krnDrawGlove(ctx, cx + 70, 55, false);
-            ctx.fillStyle = "#FFFFFF";
+            // Soft accent wash so it feels like the host UI, not classic blue.
+            var wash = ctx.createRadialGradient(cx, 80, 20, cx, 140, 280);
+            wash.addColorStop(0, "rgba(62, 207, 142, 0.18)");
+            wash.addColorStop(1, "rgba(15, 20, 18, 0)");
+            ctx.fillStyle = wash;
+            ctx.fillRect(0, 0, w, h);
+            // OS mark badge (matches .host-mark).
+            var badge = 44;
+            var bx = cx - badge / 2;
+            var by = 48;
+            ctx.fillStyle = "#1f7a52";
+            this.krnRoundRect(ctx, bx, by, badge, badge, 10);
+            ctx.fill();
+            ctx.fillStyle = "#3ecf8e";
+            this.krnRoundRect(ctx, bx + 2, by + 2, badge - 4, badge - 4, 8);
+            ctx.fill();
+            ctx.fillStyle = "#04140c";
             ctx.textAlign = "center";
-            ctx.font = "bold 18px Courier New, monospace";
-            ctx.fillText("FATAL EXCEPTION 0xADR1AN", cx, 155);
-            ctx.font = "bold 14px Courier New, monospace";
-            ctx.fillText("YO, ADRIAN... I CRASHED!", cx, 180);
+            ctx.textBaseline = "middle";
+            ctx.font = "600 15px " + mono;
+            ctx.fillText("OS", cx, by + badge / 2 + 1);
+            ctx.textBaseline = "alphabetic";
+            ctx.fillStyle = "#e0a24a";
+            ctx.font = "600 11px " + mono;
+            ctx.fillText("KERNEL TRAP", cx, 120);
+            ctx.fillStyle = "#d7e3d9";
+            ctx.font = "600 18px " + mono;
+            ctx.fillText("FATAL EXCEPTION", cx, 148);
+            ctx.fillStyle = "#3ecf8e";
+            ctx.font = "500 14px " + mono;
+            ctx.fillText("Your session has been halted.", cx, 176);
+            var stopMsg = String(msg).substring(0, 52);
             var lines = [
                 "",
-                "Your OS got knocked down in round 1",
                 "at OS_KERNEL::krnTrapError",
                 "",
-                "STOP: " + String(msg).substring(0, 48),
+                "STOP: " + stopMsg,
                 "",
-                "It ain't about how hard you hit.",
-                "It's about how hard you can get hit",
-                "and keep moving forward...",
+                "The virtual OS encountered a fatal error",
+                "and cannot continue.",
                 "",
-                "...except this kernel ain't gettin' up.",
-                "",
-                "Cut me, Mick. The OS is done.",
-                "Gonna fly now? Nah. Gonna reboot."
+                "Host simulation is still running.",
+                "Use Reset to boot again."
             ];
-            var y = 205;
+            ctx.fillStyle = "#8aa094";
+            ctx.font = "400 13px " + mono;
+            var y = 210;
             for (var i = 0; i < lines.length; i++) {
+                if (lines[i].indexOf("STOP:") === 0) {
+                    ctx.fillStyle = "#e0a24a";
+                }
+                else {
+                    ctx.fillStyle = "#8aa094";
+                }
                 ctx.fillText(lines[i], cx, y);
-                y += 17;
+                y += 18;
             }
+            // Bottom accent rule.
+            ctx.strokeStyle = "#2f3d34";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(40, h - 36);
+            ctx.lineTo(w - 40, h - 36);
+            ctx.stroke();
+            ctx.fillStyle = "#1f7a52";
+            ctx.font = "500 11px " + mono;
+            ctx.fillText("Operating System  ·  host console", cx, h - 18);
         }
-        krnDrawGlove(ctx, x, y, left) {
-            // Red Everlast-style glove blob + cuff.
-            ctx.fillStyle = "#CC0000";
+        krnRoundRect(ctx, x, y, w, h, r) {
             ctx.beginPath();
-            ctx.arc(x, y, 22, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = "#990000";
-            ctx.fillRect(x - 10, y + 12, 20, 18);
-            ctx.fillStyle = "#FFD700";
-            ctx.fillRect(x - 10, y + 14, 20, 4);
-            // Tiny highlight so they read as gloves.
-            ctx.fillStyle = "#FF6666";
-            ctx.beginPath();
-            ctx.arc(x + (left ? -6 : 6), y - 6, 6, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
         }
     }
     TSOS.Kernel = Kernel;
