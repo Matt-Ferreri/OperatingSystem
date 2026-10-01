@@ -41,7 +41,16 @@ var TSOS;
             this.nextPid++;
             this.residentList.push(pcb);
             TSOS.Control.hostUpdateMemoryDisplay(_Memory.cells);
+            TSOS.Control.hostUpdatePcbDisplay();
             return pcb;
+        }
+        findPcb(pid) {
+            for (var i = 0; i < this.residentList.length; i++) {
+                if (this.residentList[i].pid === pid) {
+                    return this.residentList[i];
+                }
+            }
+            return null;
         }
     }
     TSOS.MemoryManager = MemoryManager;

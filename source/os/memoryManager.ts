@@ -49,7 +49,17 @@ module TSOS {
             this.residentList.push(pcb);
 
             Control.hostUpdateMemoryDisplay(_Memory.cells);
+            Control.hostUpdatePcbDisplay();
             return pcb;
+        }
+
+        public findPcb(pid: number): Pcb {
+            for (var i = 0; i < this.residentList.length; i++) {
+                if (this.residentList[i].pid === pid) {
+                    return this.residentList[i];
+                }
+            }
+            return null;
         }
     }
 }

@@ -115,6 +115,12 @@ module TSOS {
                                   "- Loads a user program into memory from the input box.");
             this.commandList[this.commandList.length] = sc;
 
+            // run <pid> - execute a loaded process
+            sc = new ShellCommand(this.shellRun,
+                                  "run",
+                                  "<pid> - Runs the process with the given PID.");
+            this.commandList[this.commandList.length] = sc;
+
 
             // ps  - list the running processes and their IDs
             // kill <id> - kills the specified process id.
@@ -383,6 +389,54 @@ module TSOS {
             _StdOut.putText("Process with pid " + pcb.pid + " loaded at " + pcb.base + " (" + bytes.length + " bytes).");
         }
 
+        public shellRun(args: string[]) {
+            if (args.length < 1) {
+                _StdOut.putText("Usage: run <pid>");
+                return;
+            }
+
+            var pid = parseInt(args[0], 10);
+            if (isNaN(pid)) {
+                _StdOut.putText("Invalid PID.");
+                return;
+            }
+
+            if (_CPU.isExecuting) {
+                _StdOut.putText("A process is already running.");
+                return;
+            }
+
+            var pcb = _MemoryManager.findPcb(pid);
+            if (!pcb) {
+                _StdOut.putText("No process found with PID " + pid + ".");
+                return;
+            }
+
+            if (pcb.state === "Running") {
+                _StdOut.putText("Process " + pid + " is already running.");
+                return;
+            }
+
+            if (pcb.state === "Terminated") {
+                _StdOut.putText("Process " + pid + " has terminated.");
+                return;
+            }
+
+            // Load PCB context onto the CPU and start execution.
+            _CurrentPCB = pcb;
+            _CPU.PC = pcb.pc;
+            _CPU.Acc = pcb.acc;
+            _CPU.Xreg = pcb.xReg;
+            _CPU.Yreg = pcb.yReg;
+            _CPU.Zflag = pcb.zFlag;
+            _CPU.IR = pcb.ir;
+            pcb.state = "Running";
+            _CPU.isExecuting = true;
+
+            Control.hostUpdateCpuDisplay();
+            Control.hostUpdatePcbDisplay();
+            _StdOut.putText("Running process " + pid + ".");
+        }
 
         public shellRot13(args: string[]) {
             if (args.length > 0) {

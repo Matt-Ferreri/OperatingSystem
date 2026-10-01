@@ -343,6 +343,34 @@ textarea::placeholder {
   color: var(--accent);
 }
 
+.status-table-wrap {
+  overflow: auto;
+  padding: 8px 10px 10px;
+  background: var(--bg-input);
+}
+
+.status-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.status-table th,
+.status-table td {
+  padding: 3px 6px;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.status-table th {
+  color: var(--muted);
+  font-weight: 500;
+  border-bottom: 1px solid var(--line);
+}
+
 .footerText {
   clear: both;
   margin: 22px 0 0;

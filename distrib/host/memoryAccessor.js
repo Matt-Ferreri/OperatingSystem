@@ -8,19 +8,35 @@
 var TSOS;
 (function (TSOS) {
     class MemoryAccessor {
-        read(address) {
+        // Translate a logical address using the current PCB base/limit.
+        // With no running process, the address is treated as physical (for load).
+        translate(address) {
+            if (_CurrentPCB) {
+                if (address < 0 || address >= _CurrentPCB.limit) {
+                    _Kernel.krnTrapError("Memory access out of bounds: " + address);
+                    return -1;
+                }
+                return _CurrentPCB.base + address;
+            }
             if (address < 0 || address >= MEMORY_SIZE) {
-                _Kernel.krnTrapError("Memory read out of bounds: " + address);
+                _Kernel.krnTrapError("Memory access out of bounds: " + address);
+                return -1;
+            }
+            return address;
+        }
+        read(address) {
+            var physical = this.translate(address);
+            if (physical < 0) {
                 return 0;
             }
-            return _Memory.cells[address];
+            return _Memory.cells[physical];
         }
         write(address, value) {
-            if (address < 0 || address >= MEMORY_SIZE) {
-                _Kernel.krnTrapError("Memory write out of bounds: " + address);
+            var physical = this.translate(address);
+            if (physical < 0) {
                 return;
             }
-            _Memory.cells[address] = value & 0xFF;
+            _Memory.cells[physical] = value & 0xFF;
         }
     }
     TSOS.MemoryAccessor = MemoryAccessor;

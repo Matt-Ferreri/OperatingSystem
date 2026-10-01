@@ -41,6 +41,8 @@ var TSOS;
             setInterval(Control.hostUpdateTaskBarDateTime, 1000);
             // Build the initial empty memory display.
             Control.hostUpdateMemoryDisplay();
+            Control.hostUpdateCpuDisplay();
+            Control.hostUpdatePcbDisplay();
             // Check for our testing and enrichment core, which
             // may be referenced here (from index.html) as function Glados().
             if (typeof Glados === "function") {
@@ -87,6 +89,69 @@ var TSOS;
             }
             html += "</tbody></table>";
             container.innerHTML = html;
+        }
+        static hostUpdateCpuDisplay() {
+            var toHex = function (value, width = 2) {
+                return (value & ((1 << (width * 4)) - 1)).toString(16).toUpperCase().padStart(width, "0");
+            };
+            var pc = document.getElementById("cpuPC");
+            var ir = document.getElementById("cpuIR");
+            var acc = document.getElementById("cpuAcc");
+            var x = document.getElementById("cpuX");
+            var y = document.getElementById("cpuY");
+            var z = document.getElementById("cpuZ");
+            var exec = document.getElementById("cpuExec");
+            if (!pc) {
+                return;
+            }
+            if (_CPU) {
+                pc.textContent = toHex(_CPU.PC);
+                ir.textContent = toHex(_CPU.IR);
+                acc.textContent = toHex(_CPU.Acc);
+                x.textContent = toHex(_CPU.Xreg);
+                y.textContent = toHex(_CPU.Yreg);
+                z.textContent = String(_CPU.Zflag);
+                exec.textContent = String(_CPU.isExecuting);
+            }
+            else {
+                pc.textContent = "00";
+                ir.textContent = "00";
+                acc.textContent = "00";
+                x.textContent = "00";
+                y.textContent = "00";
+                z.textContent = "0";
+                exec.textContent = "false";
+            }
+        }
+        static hostUpdatePcbDisplay() {
+            var body = document.getElementById("pcbTableBody");
+            if (!body) {
+                return;
+            }
+            var toHex = function (value, width = 2) {
+                return (value & ((1 << (width * 4)) - 1)).toString(16).toUpperCase().padStart(width, "0");
+            };
+            if (!_MemoryManager || !_MemoryManager.residentList || _MemoryManager.residentList.length === 0) {
+                body.innerHTML = "<tr><td colspan='10'>No processes</td></tr>";
+                return;
+            }
+            var html = "";
+            for (var i = 0; i < _MemoryManager.residentList.length; i++) {
+                var pcb = _MemoryManager.residentList[i];
+                html += "<tr>" +
+                    "<td>" + pcb.pid + "</td>" +
+                    "<td>" + pcb.state + "</td>" +
+                    "<td>" + toHex(pcb.pc) + "</td>" +
+                    "<td>" + toHex(pcb.ir) + "</td>" +
+                    "<td>" + toHex(pcb.acc) + "</td>" +
+                    "<td>" + toHex(pcb.xReg) + "</td>" +
+                    "<td>" + toHex(pcb.yReg) + "</td>" +
+                    "<td>" + pcb.zFlag + "</td>" +
+                    "<td>" + pcb.base + "</td>" +
+                    "<td>" + pcb.limit + "</td>" +
+                    "</tr>";
+            }
+            body.innerHTML = html;
         }
         static hostLog(msg, source = "?") {
             // Note the OS CLOCK.

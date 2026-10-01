@@ -133,6 +133,65 @@
                       placeholder="Paste hex programs here later..."
             ></textarea>
          </section>
+
+         <section id="divCpu" class="panel" aria-label="CPU">
+            <div class="panel-header">
+               <h2>CPU</h2>
+            </div>
+            <div id="cpuDisplay" class="status-table-wrap">
+               <table class="status-table">
+                  <thead>
+                     <tr>
+                        <th>PC</th>
+                        <th>IR</th>
+                        <th>Acc</th>
+                        <th>X</th>
+                        <th>Y</th>
+                        <th>Z</th>
+                        <th>Exec</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     <tr>
+                        <td id="cpuPC">00</td>
+                        <td id="cpuIR">00</td>
+                        <td id="cpuAcc">00</td>
+                        <td id="cpuX">00</td>
+                        <td id="cpuY">00</td>
+                        <td id="cpuZ">0</td>
+                        <td id="cpuExec">false</td>
+                     </tr>
+                  </tbody>
+               </table>
+            </div>
+         </section>
+
+         <section id="divPcb" class="panel" aria-label="Process Control Block">
+            <div class="panel-header">
+               <h2>PCB</h2>
+            </div>
+            <div id="pcbDisplay" class="status-table-wrap">
+               <table class="status-table" id="pcbTable">
+                  <thead>
+                     <tr>
+                        <th>PID</th>
+                        <th>State</th>
+                        <th>PC</th>
+                        <th>IR</th>
+                        <th>Acc</th>
+                        <th>X</th>
+                        <th>Y</th>
+                        <th>Z</th>
+                        <th>Base</th>
+                        <th>Limit</th>
+                     </tr>
+                  </thead>
+                  <tbody id="pcbTableBody">
+                     <tr><td colspan="10">No processes</td></tr>
+                  </tbody>
+               </table>
+            </div>
+         </section>
       </aside>
    </div>
 
