@@ -62,6 +62,9 @@ var TSOS;
                 else if (chr === "down") {
                     this.recallHistory(1);
                 }
+                else if (chr === String.fromCharCode(3)) { // Ctrl+C
+                    this.handleBreak();
+                }
                 else {
                     // This is a "normal" character, so ...
                     // ... draw it on the screen...
@@ -69,8 +72,20 @@ var TSOS;
                     // ... and add it to our buffer.
                     this.buffer += chr;
                 }
-                // TODO: Add a case for Ctrl-C that would allow the user to break the current program.
             }
+        }
+        handleBreak() {
+            this.clearCurrentInput();
+            this.advanceLine();
+            this.putText("^C");
+            this.advanceLine();
+            if (_CPU && _CPU.isExecuting) {
+                var pid = _CurrentPCB ? _CurrentPCB.pid : "?";
+                _CPU.killProcess();
+                this.putText("Process " + pid + " killed.");
+                this.advanceLine();
+            }
+            _OsShell.putPrompt();
         }
         handleBackspace() {
             // Only erase user-typed input for the current command line.

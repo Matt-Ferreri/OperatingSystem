@@ -141,10 +141,17 @@ var TSOS;
             _CurrentPCB.ir = this.IR;
         }
         terminateProcess() {
+            this.endProcess("Terminated");
+        }
+        // Stop the current process from outside (e.g. Ctrl+C) and mark it killed.
+        killProcess() {
+            this.endProcess("Killed");
+        }
+        endProcess(finalState) {
             this.isExecuting = false;
             if (_CurrentPCB) {
                 this.syncPcb();
-                _CurrentPCB.state = "Terminated";
+                _CurrentPCB.state = finalState;
                 TSOS.Control.hostUpdatePcbDisplay();
                 _CurrentPCB = null;
             }

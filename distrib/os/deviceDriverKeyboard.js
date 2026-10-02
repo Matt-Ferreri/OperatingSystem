@@ -27,8 +27,14 @@ var TSOS;
             // Parse the params.  TODO: Check that the params are valid and osTrapError if not.
             var keyCode = params[0];
             var isShifted = params[1];
-            _Kernel.krnTrace("Key code:" + keyCode + " shifted:" + isShifted);
+            var isCtrl = params[2] === true;
+            _Kernel.krnTrace("Key code:" + keyCode + " shifted:" + isShifted + " ctrl:" + isCtrl);
             var chr = "";
+            // Ctrl+C — break signal (ASCII ETX).
+            if (isCtrl && keyCode === 67) {
+                _KernelInputQueue.enqueue(String.fromCharCode(3));
+                return;
+            }
             // Check to see if we even want to deal with the key that was pressed.
             if ((keyCode >= 65) && (keyCode <= 90)) { // letter
                 if (isShifted === true) {

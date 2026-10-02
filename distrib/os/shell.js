@@ -340,8 +340,9 @@ var TSOS;
                 _StdOut.putText("Process " + pid + " is already running.");
                 return;
             }
-            if (pcb.state === "Terminated") {
-                _StdOut.putText("Process " + pid + " has terminated.");
+            if (pcb.state === "Terminated" || pcb.state === "Killed") {
+                _StdOut.putText("Process " + pid + " has " +
+                    (pcb.state === "Killed" ? "been killed." : "terminated."));
                 return;
             }
             // Load PCB context onto the CPU and start execution.
