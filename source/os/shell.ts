@@ -417,8 +417,9 @@ module TSOS {
                 return;
             }
 
-            if (pcb.state === "Terminated") {
-                _StdOut.putText("Process " + pid + " has terminated.");
+            if (pcb.state === "Terminated" || pcb.state === "Killed") {
+                _StdOut.putText("Process " + pid + " has " +
+                    (pcb.state === "Killed" ? "been killed." : "terminated."));
                 return;
             }
 

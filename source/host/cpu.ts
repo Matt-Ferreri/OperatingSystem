@@ -157,10 +157,19 @@ module TSOS {
         }
 
         private terminateProcess(): void {
+            this.endProcess("Terminated");
+        }
+
+        // Stop the current process from outside (e.g. Ctrl+C) and mark it killed.
+        public killProcess(): void {
+            this.endProcess("Killed");
+        }
+
+        private endProcess(finalState: string): void {
             this.isExecuting = false;
             if (_CurrentPCB) {
                 this.syncPcb();
-                _CurrentPCB.state = "Terminated";
+                _CurrentPCB.state = finalState;
                 Control.hostUpdatePcbDisplay();
                 _CurrentPCB = null;
             }
