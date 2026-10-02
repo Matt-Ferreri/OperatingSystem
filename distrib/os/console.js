@@ -77,13 +77,38 @@ var TSOS;
             if (this.buffer.length > 0) {
                 var lastChar = this.buffer.charAt(this.buffer.length - 1);
                 var charWidth = _DrawingContext.measureText(this.currentFont, this.currentFontSize, lastChar);
-                this.currentXPosition = this.currentXPosition - charWidth;
                 var clearHeight = this.currentFontSize +
                     _DrawingContext.fontDescent(this.currentFont, this.currentFontSize) +
                     _FontHeightMargin;
-                _DrawingContext.clearRect(this.currentXPosition, this.currentYPosition - this.currentFontSize, charWidth + 1, clearHeight);
-                this.buffer = this.buffer.substring(0, this.buffer.length - 1);
+                var lineHeight = clearHeight;
+                // If this char started a wrapped line, erase it then move back up.
+                if (this.currentXPosition - charWidth <= 0) {
+                    _DrawingContext.clearRect(0, this.currentYPosition - this.currentFontSize, charWidth + 1, clearHeight);
+                    this.currentYPosition -= lineHeight;
+                    this.buffer = this.buffer.substring(0, this.buffer.length - 1);
+                    this.currentXPosition = this.cursorXAfterBuffer(this.buffer);
+                }
+                else {
+                    this.currentXPosition = this.currentXPosition - charWidth;
+                    _DrawingContext.clearRect(this.currentXPosition, this.currentYPosition - this.currentFontSize, charWidth + 1, clearHeight);
+                    this.buffer = this.buffer.substring(0, this.buffer.length - 1);
+                }
             }
+        }
+        // Simulate prompt + buffer with wrapping to find the cursor X.
+        cursorXAfterBuffer(buf) {
+            var x = 0;
+            if (_OsShell && _OsShell.promptStr) {
+                x = _DrawingContext.measureText(this.currentFont, this.currentFontSize, _OsShell.promptStr);
+            }
+            for (var i = 0; i < buf.length; i++) {
+                var w = _DrawingContext.measureText(this.currentFont, this.currentFontSize, buf.charAt(i));
+                if (x + w > _Canvas.width) {
+                    x = 0;
+                }
+                x += w;
+            }
+            return x;
         }
         clearCurrentInput() {
             while (this.buffer.length > 0) {
@@ -174,11 +199,16 @@ var TSOS;
                 decided to write one function and use the term "text" to connote string or char.
             */
             if (text !== "") {
-                // Draw the text at the current X and Y coordinates.
-                _DrawingContext.drawText(this.currentFont, this.currentFontSize, this.currentXPosition, this.currentYPosition, text);
-                // Move the current X position.
-                var offset = _DrawingContext.measureText(this.currentFont, this.currentFontSize, text);
-                this.currentXPosition = this.currentXPosition + offset;
+                // Draw character-by-character so long strings wrap mid-text.
+                for (var i = 0; i < text.length; i++) {
+                    var ch = text.charAt(i);
+                    var charWidth = _DrawingContext.measureText(this.currentFont, this.currentFontSize, ch);
+                    if (this.currentXPosition + charWidth > _Canvas.width) {
+                        this.advanceLine();
+                    }
+                    _DrawingContext.drawText(this.currentFont, this.currentFontSize, this.currentXPosition, this.currentYPosition, ch);
+                    this.currentXPosition = this.currentXPosition + charWidth;
+                }
             }
         }
         advanceLine() {

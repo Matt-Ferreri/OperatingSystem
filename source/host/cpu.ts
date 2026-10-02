@@ -132,6 +132,7 @@ module TSOS {
             this.syncPcb();
             Control.hostUpdateCpuDisplay();
             Control.hostUpdateMemoryDisplay(_Memory.cells);
+            Control.hostUpdatePcbDisplay()
         }
 
         // Little-endian 2-byte address operand; advances PC by 2.
