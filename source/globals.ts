@@ -69,6 +69,9 @@ var _SarcasticMode: boolean = false;
 // Set when the kernel traps a fatal OS error (BSOD).
 var _KernelTrapped: boolean = false;
 
+// When true, the CPU does not auto-cycle on clock pulses; use the Step button instead.
+var _SingleStep: boolean = false;
+
 // Global Device Driver Objects - page 12
 var _krnKeyboardDriver: TSOS.DeviceDriverKeyboard  = null;
 

@@ -81,6 +81,24 @@
                 value="Reset"
                 tabindex="2"
                 onclick="TSOS.Control.hostBtnReset_click(this);">
+
+         <input type="button"
+                id="btnSingleStep"
+                name="btnSingleStep"
+                class="host-btn"
+                disabled="disabled"
+                value="Single Step"
+                tabindex="3"
+                onclick="TSOS.Control.hostBtnSingleStep_click(this);">
+
+         <input type="button"
+                id="btnStep"
+                name="btnStep"
+                class="host-btn"
+                disabled="disabled"
+                value="Step"
+                tabindex="4"
+                onclick="TSOS.Control.hostBtnStep_click(this);">
       </div>
    </header>
 
@@ -104,7 +122,7 @@
          <canvas id="display"
                  width="500"
                  height="500"
-                 tabindex="3">
+                 tabindex="5">
          </canvas>
       </section>
 

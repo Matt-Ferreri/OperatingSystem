@@ -134,6 +134,18 @@ body {
   border-color: #54db9d;
 }
 
+.host-btn-active {
+  background: var(--warn);
+  border-color: var(--warn);
+  color: #1a1208;
+  font-weight: 600;
+}
+
+.host-btn-active:hover:not(:disabled) {
+  background: #ebb05c;
+  border-color: #ebb05c;
+}
+
 #divTaskBar {
   display: flex;
   flex-wrap: wrap;

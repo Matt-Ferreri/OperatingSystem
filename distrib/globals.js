@@ -54,6 +54,8 @@ var _Status = "I love operating systems";
 var _SarcasticMode = false;
 // Set when the kernel traps a fatal OS error (BSOD).
 var _KernelTrapped = false;
+// When true, the CPU does not auto-cycle on clock pulses; use the Step button instead.
+var _SingleStep = false;
 // Global Device Driver Objects - page 12
 var _krnKeyboardDriver = null;
 var _hardwareClockID = null;
