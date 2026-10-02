@@ -174,6 +174,8 @@ var TSOS;
             // .. enable the Halt and Reset buttons ...
             document.getElementById("btnHaltOS").disabled = false;
             document.getElementById("btnReset").disabled = false;
+            document.getElementById("btnSingleStep").disabled = false;
+            Control.hostUpdateStepButton();
             // .. set focus on the OS console display ...
             document.getElementById("display").focus();
             // ... Create and initialize the CPU (because it's part of the hardware)  ...
@@ -202,6 +204,37 @@ var TSOS;
         static hostBtnReset_click(btn) {
             // The easiest and most thorough way to do this is to reload (not refresh) the document.
             location.reload();
+        }
+        static hostBtnSingleStep_click(btn) {
+            _SingleStep = !_SingleStep;
+            if (_SingleStep) {
+                btn.classList.add("host-btn-active");
+                btn.value = "Single Step: ON";
+                Control.hostLog("Single-step mode ON", "host");
+            }
+            else {
+                btn.classList.remove("host-btn-active");
+                btn.value = "Single Step";
+                Control.hostLog("Single-step mode OFF", "host");
+            }
+            Control.hostUpdateStepButton();
+        }
+        static hostBtnStep_click(btn) {
+            if (!_SingleStep) {
+                return;
+            }
+            if (!_CPU || !_CPU.isExecuting) {
+                Control.hostLog("Step: nothing executing", "host");
+                return;
+            }
+            Control.hostLog("Single step", "host");
+            _CPU.cycle();
+        }
+        static hostUpdateStepButton() {
+            var stepBtn = document.getElementById("btnStep");
+            if (stepBtn) {
+                stepBtn.disabled = !_SingleStep;
+            }
         }
     }
     TSOS.Control = Control;
