@@ -185,9 +185,10 @@
             </div>
          </section>
 
-         <section id="divPcb" class="panel" aria-label="Process Control Block">
+         <section id="divPcb" class="panel" aria-label="Process Queue">
             <div class="panel-header">
-               <h2>PCB</h2>
+               <h2>Process Queue</h2>
+               <span class="panel-hint">quantum is cycles left in the current slice</span>
             </div>
             <div id="pcbDisplay" class="status-table-wrap">
                <table class="status-table" id="pcbTable">
@@ -195,18 +196,22 @@
                      <tr>
                         <th>PID</th>
                         <th>State</th>
+                        <th>Location</th>
+                        <th>Base</th>
+                        <th>Limit</th>
+                        <th>Segment</th>
+                        <th>Priority</th>
+                        <th>Quantum</th>
                         <th>PC</th>
                         <th>IR</th>
                         <th>Acc</th>
                         <th>X</th>
                         <th>Y</th>
                         <th>Z</th>
-                        <th>Base</th>
-                        <th>Limit</th>
                      </tr>
                   </thead>
                   <tbody id="pcbTableBody">
-                     <tr><td colspan="10">No processes</td></tr>
+                     <tr><td colspan="14">No processes</td></tr>
                   </tbody>
                </table>
             </div>

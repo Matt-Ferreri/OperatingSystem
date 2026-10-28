@@ -70,6 +70,8 @@ var TSOS;
             if (_CPU.isExecuting && _CurrentPCB === activePcb) {
                 this.onCycle();
             }
+            // Quantum changes after the instruction, so refresh once the slice counter is current.
+            TSOS.Control.hostUpdatePcbDisplay();
         }
         onProcessExit() {
             _CurrentPCB = null;

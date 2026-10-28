@@ -38,6 +38,7 @@ var TSOS;
             }
             this.segmentUsed[segment] = true;
             var pcb = new TSOS.Pcb(this.nextPid, base, MEMORY_SEGMENT_SIZE);
+            pcb.segment = segment;
             this.nextPid++;
             this.residentList.push(pcb);
             TSOS.Control.hostUpdateMemoryDisplay(_Memory.cells);

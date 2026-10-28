@@ -168,23 +168,31 @@ var TSOS;
                 return (value & ((1 << (width * 4)) - 1)).toString(16).toUpperCase().padStart(width, "0");
             };
             if (!_MemoryManager || !_MemoryManager.residentList || _MemoryManager.residentList.length === 0) {
-                body.innerHTML = "<tr><td colspan='10'>No processes</td></tr>";
+                body.innerHTML = "<tr><td colspan='14'>No processes</td></tr>";
                 return;
             }
             var html = "";
             for (var i = 0; i < _MemoryManager.residentList.length; i++) {
                 var pcb = _MemoryManager.residentList[i];
+                var quantum = "—";
+                if (pcb === _CurrentPCB && pcb.state === "Running") {
+                    quantum = String(Math.max(0, _Quantum - _QuantumCount));
+                }
                 html += "<tr>" +
                     "<td>" + pcb.pid + "</td>" +
                     "<td>" + pcb.state + "</td>" +
+                    "<td>" + pcb.location + "</td>" +
+                    "<td>" + pcb.base + "</td>" +
+                    "<td>" + pcb.limit + "</td>" +
+                    "<td>" + pcb.segment + "</td>" +
+                    "<td>" + pcb.priority + "</td>" +
+                    "<td>" + quantum + "</td>" +
                     "<td>" + toHex(pcb.pc) + "</td>" +
                     "<td>" + toHex(pcb.ir) + "</td>" +
                     "<td>" + toHex(pcb.acc) + "</td>" +
                     "<td>" + toHex(pcb.xReg) + "</td>" +
                     "<td>" + toHex(pcb.yReg) + "</td>" +
                     "<td>" + pcb.zFlag + "</td>" +
-                    "<td>" + pcb.base + "</td>" +
-                    "<td>" + pcb.limit + "</td>" +
                     "</tr>";
             }
             body.innerHTML = html;

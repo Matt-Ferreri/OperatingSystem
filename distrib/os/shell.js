@@ -479,6 +479,7 @@ var TSOS;
             }
             _Quantum = quantum;
             _QuantumCount = 0;
+            TSOS.Control.hostUpdatePcbDisplay();
             _StdOut.putText("Quantum set to " + _Quantum + ".");
         }
         shellClearmem(args) {

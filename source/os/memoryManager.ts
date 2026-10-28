@@ -45,6 +45,7 @@ module TSOS {
             this.segmentUsed[segment] = true;
 
             var pcb = new Pcb(this.nextPid, base, MEMORY_SEGMENT_SIZE);
+            pcb.segment = segment;
             this.nextPid++;
             this.residentList.push(pcb);
 

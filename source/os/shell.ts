@@ -591,6 +591,7 @@ module TSOS {
 
             _Quantum = quantum;
             _QuantumCount = 0;
+            Control.hostUpdatePcbDisplay();
             _StdOut.putText("Quantum set to " + _Quantum + ".");
         }
 

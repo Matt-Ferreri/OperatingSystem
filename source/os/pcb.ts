@@ -20,7 +20,8 @@ module TSOS {
             public ir: number = 0,
             public state: string = "Resident",
             public priority: number = 0,
-            public location: string = "Memory") {
+            public location: string = "Memory",
+            public segment: number = 0) {
         }
     }
 }
