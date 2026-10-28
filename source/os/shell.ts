@@ -146,6 +146,12 @@ module TSOS {
                                   "<pid> - Kills the process with the given PID.");
             this.commandList[this.commandList.length] = sc;
 
+            // killall - stop every process
+            sc = new ShellCommand(this.shellKillall,
+                                  "killall",
+                                  "- Kills all processes.");
+            this.commandList[this.commandList.length] = sc;
+
             // Display the initial prompt.
             this.putPrompt();
         }
@@ -521,6 +527,42 @@ module TSOS {
                 Control.hostUpdatePcbDisplay();
             }
             _StdOut.putText("Process " + pid + " killed.");
+        }
+
+        public shellKillall(args: string[]) {
+            if (!_MemoryManager || _MemoryManager.residentList.length === 0) {
+                _StdOut.putText("No processes.");
+                return;
+            }
+
+            var killed = 0;
+            var running = null;
+            for (var i = 0; i < _MemoryManager.residentList.length; i++) {
+                var pcb = _MemoryManager.residentList[i];
+                if (pcb.state === "Terminated" || pcb.state === "Killed") {
+                    continue;
+                }
+                if (_CPU.isExecuting && _CurrentPCB === pcb) {
+                    running = pcb;
+                    continue;
+                }
+                _Scheduler.removeFromReady(pcb);
+                pcb.state = "Killed";
+                killed++;
+            }
+
+            if (running) {
+                _CPU.killProcess();
+                killed++;
+            } else {
+                Control.hostUpdatePcbDisplay();
+            }
+
+            if (killed === 0) {
+                _StdOut.putText("No processes to kill.");
+                return;
+            }
+            _StdOut.putText("All processes killed.");
         }
 
         public shellClearmem(args: string[]) {
