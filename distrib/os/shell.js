@@ -76,7 +76,9 @@ var TSOS;
             // runall - run every loaded program together
             sc = new TSOS.ShellCommand(this.shellRunall, "runall", "- Runs every loaded program at once.");
             this.commandList[this.commandList.length] = sc;
-            // ps  - list the running processes and their IDs
+            // ps - list the PID and state of every process
+            sc = new TSOS.ShellCommand(this.shellPs, "ps", "- Displays the PID and state of all processes.");
+            this.commandList[this.commandList.length] = sc;
             // kill <id> - kills the specified process id.
             // Display the initial prompt.
             this.putPrompt();
@@ -376,6 +378,18 @@ var TSOS;
             }
             _Scheduler.dispatch();
             _StdOut.putText("Running all programs.");
+        }
+        shellPs(args) {
+            if (!_MemoryManager || _MemoryManager.residentList.length === 0) {
+                _StdOut.putText("No processes.");
+                return;
+            }
+            _StdOut.putText("PID  State");
+            for (var i = 0; i < _MemoryManager.residentList.length; i++) {
+                var pcb = _MemoryManager.residentList[i];
+                _StdOut.advanceLine();
+                _StdOut.putText("  " + pcb.pid + "    " + pcb.state);
+            }
         }
         shellClearmem(args) {
             if (!_MemoryManager.clearMemory()) {
