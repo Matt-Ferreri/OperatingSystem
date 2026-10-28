@@ -82,5 +82,22 @@ module TSOS {
             _QuantumCount = 0;
             this.dispatch();
         }
+
+        // Drop a waiting process so it will not be dispatched.
+        public removeFromReady(pcb): void {
+            if (!_ReadyQueue) {
+                return;
+            }
+            var kept = [];
+            while (!_ReadyQueue.isEmpty()) {
+                var next = _ReadyQueue.dequeue();
+                if (next !== pcb) {
+                    kept[kept.length] = next;
+                }
+            }
+            for (var i = 0; i < kept.length; i++) {
+                _ReadyQueue.enqueue(kept[i]);
+            }
+        }
     }
 }

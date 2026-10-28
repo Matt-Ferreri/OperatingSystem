@@ -79,7 +79,9 @@ var TSOS;
             // ps - list the PID and state of every process
             sc = new TSOS.ShellCommand(this.shellPs, "ps", "- Displays the PID and state of all processes.");
             this.commandList[this.commandList.length] = sc;
-            // kill <id> - kills the specified process id.
+            // kill <pid> - stop one process
+            sc = new TSOS.ShellCommand(this.shellKill, "kill", "<pid> - Kills the process with the given PID.");
+            this.commandList[this.commandList.length] = sc;
             // Display the initial prompt.
             this.putPrompt();
         }
@@ -390,6 +392,36 @@ var TSOS;
                 _StdOut.advanceLine();
                 _StdOut.putText("  " + pcb.pid + "    " + pcb.state);
             }
+        }
+        shellKill(args) {
+            if (args.length < 1) {
+                _StdOut.putText("Usage: kill <pid>");
+                return;
+            }
+            var pid = parseInt(args[0], 10);
+            if (isNaN(pid)) {
+                _StdOut.putText("Invalid PID.");
+                return;
+            }
+            var pcb = _MemoryManager.findPcb(pid);
+            if (!pcb) {
+                _StdOut.putText("No process found with PID " + pid + ".");
+                return;
+            }
+            if (pcb.state === "Terminated" || pcb.state === "Killed") {
+                _StdOut.putText("Process " + pid + " has already " +
+                    (pcb.state === "Killed" ? "been killed." : "terminated."));
+                return;
+            }
+            if (_CPU.isExecuting && _CurrentPCB === pcb) {
+                _CPU.killProcess();
+            }
+            else {
+                _Scheduler.removeFromReady(pcb);
+                pcb.state = "Killed";
+                TSOS.Control.hostUpdatePcbDisplay();
+            }
+            _StdOut.putText("Process " + pid + " killed.");
         }
         shellClearmem(args) {
             if (!_MemoryManager.clearMemory()) {
