@@ -86,6 +86,17 @@ module TSOS {
             }
 
             const BYTES_PER_ROW = 8;
+
+            // In single-step mode, highlight the opcode at the current PC.
+            var highlightStart = -1;
+            var highlightEnd = -1;
+            if (_SingleStep && _CPU && _CPU.isExecuting) {
+                var base = _CurrentPCB ? _CurrentPCB.base : 0;
+                highlightStart = base + (_CPU.PC & 0xFF);
+                var opcodeByte = (memory && highlightStart < memory.length) ? (memory[highlightStart] & 0xFF) : 0;
+                highlightEnd = highlightStart + Control.hostOpcodeLength(opcodeByte);
+            }
+
             var html = "<table class='memory-table'><tbody>";
 
             for (var addr = 0; addr < MEMORY_SIZE; addr += BYTES_PER_ROW) {
@@ -98,7 +109,13 @@ module TSOS {
                     var index = addr + col;
                     var value = (memory && index < memory.length) ? memory[index] : 0;
                     var byteHex = (value & 0xFF).toString(16).toUpperCase().padStart(2, "0");
-                    html += "<td>" + byteHex + "</td>";
+                    var cellClass = "";
+                    if (index === highlightStart) {
+                        cellClass = " class='mem-current-op'";
+                    } else if (index > highlightStart && index < highlightEnd) {
+                        cellClass = " class='mem-current-operand'";
+                    }
+                    html += "<td" + cellClass + ">" + byteHex + "</td>";
                 }
 
                 html += "</tr>";
@@ -106,6 +123,27 @@ module TSOS {
 
             html += "</tbody></table>";
             container.innerHTML = html;
+        }
+
+        // Byte length of a 6502a instruction given its opcode.
+        private static hostOpcodeLength(opcode: number): number {
+            switch (opcode) {
+                case 0xA9: // LDA #nn
+                case 0xA2: // LDX #nn
+                case 0xA0: // LDY #nn
+                case 0xD0: // BNE rr
+                    return 2;
+                case 0xAD: // LDA abs
+                case 0x8D: // STA abs
+                case 0x6D: // ADC abs
+                case 0xAE: // LDX abs
+                case 0xAC: // LDY abs
+                case 0xEC: // CPX abs
+                case 0xEE: // INC abs
+                    return 3;
+                default:   // EA, 00, FF, unknown
+                    return 1;
+            }
         }
 
         public static hostUpdateCpuDisplay(): void {
@@ -256,6 +294,9 @@ module TSOS {
                 Control.hostLog("Single-step mode OFF", "host");
             }
             Control.hostUpdateStepButton();
+            if (_Memory) {
+                Control.hostUpdateMemoryDisplay(_Memory.cells);
+            }
         }
 
         public static hostBtnStep_click(btn): void {

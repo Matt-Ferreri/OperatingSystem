@@ -156,6 +156,9 @@ var TSOS;
                 _CurrentPCB = null;
             }
             TSOS.Control.hostUpdateCpuDisplay();
+            if (_Memory) {
+                TSOS.Control.hostUpdateMemoryDisplay(_Memory.cells);
+            }
         }
     }
     TSOS.Cpu = Cpu;

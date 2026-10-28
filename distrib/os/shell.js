@@ -357,6 +357,9 @@ var TSOS;
             _CPU.isExecuting = true;
             TSOS.Control.hostUpdateCpuDisplay();
             TSOS.Control.hostUpdatePcbDisplay();
+            if (_SingleStep) {
+                TSOS.Control.hostUpdateMemoryDisplay(_Memory.cells);
+            }
             _StdOut.putText("Running process " + pid + ".");
         }
         shellRot13(args) {

@@ -436,6 +436,9 @@ module TSOS {
 
             Control.hostUpdateCpuDisplay();
             Control.hostUpdatePcbDisplay();
+            if (_SingleStep) {
+                Control.hostUpdateMemoryDisplay(_Memory.cells);
+            }
             _StdOut.putText("Running process " + pid + ".");
         }
 

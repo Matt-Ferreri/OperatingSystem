@@ -355,6 +355,20 @@ textarea::placeholder {
   color: var(--accent);
 }
 
+.memory-table td.mem-current-op {
+  background: var(--warn);
+  color: #1a1208;
+  font-weight: 600;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px #c4842e;
+}
+
+.memory-table td.mem-current-operand {
+  background: rgba(224, 162, 74, 0.35);
+  color: var(--text);
+  border-radius: 3px;
+}
+
 .status-table-wrap {
   overflow: auto;
   padding: 8px 10px 10px;

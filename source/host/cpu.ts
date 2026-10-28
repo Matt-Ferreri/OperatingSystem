@@ -174,6 +174,9 @@ module TSOS {
                 _CurrentPCB = null;
             }
             Control.hostUpdateCpuDisplay();
+            if (_Memory) {
+                Control.hostUpdateMemoryDisplay(_Memory.cells);
+            }
         }
     }
 }
