@@ -9,7 +9,55 @@ module TSOS {
 
     export class Scheduler {
 
+        public noteArrival(pcb): void {
+            if (pcb && pcb.arrivalCycle < 0) {
+                pcb.arrivalCycle = _CpuCycles;
+            }
+        }
+
+        // Turnaround is cycles from arrival until the process stops.
+        // Wait time is the part of that spent off the CPU.
+        public reportMetrics(pcb, restorePrompt: boolean): void {
+            if (!pcb || pcb.metricsReported || pcb.arrivalCycle < 0) {
+                return;
+            }
+
+            pcb.turnaroundTime = _CpuCycles - pcb.arrivalCycle;
+            pcb.waitTime = pcb.turnaroundTime - pcb.executeCycles;
+            if (pcb.waitTime < 0) {
+                pcb.waitTime = 0;
+            }
+            pcb.metricsReported = true;
+
+            var finished = 0;
+            var waitSum = 0;
+            if (_MemoryManager && _MemoryManager.residentList) {
+                for (var i = 0; i < _MemoryManager.residentList.length; i++) {
+                    var other = _MemoryManager.residentList[i];
+                    if (other.metricsReported) {
+                        finished++;
+                        waitSum += other.waitTime;
+                    }
+                }
+            }
+            var average = finished > 0 ? waitSum / finished : 0;
+            var rule = "-------------------------";
+            var lines = [
+                "Process Metrics:",
+                rule,
+                "Process " + pcb.pid + " - Turnaround Time = " + pcb.turnaroundTime +
+                    " cycles, Wait Time = " + pcb.waitTime.toFixed(1) + " cycles",
+                "",
+                "Average Wait Time: " + average.toFixed(2) + " cycles",
+                rule
+            ];
+            if (_StdOut && _StdOut.writeBlock) {
+                _StdOut.writeBlock(lines, restorePrompt);
+            }
+        }
+
         public loadToCpu(pcb): void {
+            this.noteArrival(pcb);
             _CurrentPCB = pcb;
             _CPU.PC = pcb.pc;
             _CPU.Acc = pcb.acc;

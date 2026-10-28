@@ -481,6 +481,7 @@ module TSOS {
 
             for (var j = 0; j < waiting.length; j++) {
                 waiting[j].state = "Ready";
+                _Scheduler.noteArrival(waiting[j]);
                 _ReadyQueue.enqueue(waiting[j]);
             }
             _Scheduler.dispatch();
@@ -530,6 +531,7 @@ module TSOS {
             } else {
                 _Scheduler.removeFromReady(pcb);
                 pcb.state = "Killed";
+                _Scheduler.reportMetrics(pcb, false);
                 Control.hostUpdatePcbDisplay();
             }
             _StdOut.putText("Process " + pid + " killed.");
@@ -554,6 +556,7 @@ module TSOS {
                 }
                 _Scheduler.removeFromReady(pcb);
                 pcb.state = "Killed";
+                _Scheduler.reportMetrics(pcb, false);
                 killed++;
             }
 

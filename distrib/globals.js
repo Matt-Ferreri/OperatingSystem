@@ -36,6 +36,8 @@ var _ReadyQueue = null;
 var _Scheduler = null;
 var _Quantum = CPU_QUANTUM;
 var _QuantumCount = 0;
+// Instruction cycles executed since boot. Turnaround and wait time are measured from this.
+var _CpuCycles = 0;
 var _OSclock = 0; // Page 23.
 var _Mode = 0; // (currently unused)  0 = Kernel Mode, 1 = User Mode.  See page 21.
 var _Canvas; // Initialized in Control.hostInit().

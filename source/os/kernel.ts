@@ -23,6 +23,7 @@ module TSOS {
             _ReadyQueue = new Queue();            // Processes waiting for a turn on the CPU.
             _Scheduler = new Scheduler();
             _QuantumCount = 0;
+            _CpuCycles = 0;
 
             // Initialize the console.
             _Console = new Console();             // The command line interface / console I/O device.

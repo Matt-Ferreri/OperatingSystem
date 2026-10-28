@@ -205,6 +205,28 @@ var TSOS;
             _OsShell.putPrompt();
             this.putText(this.buffer);
         }
+        // Print a block of lines. When restorePrompt is set, put the prompt
+        // (and any in-progress typing) back underneath the block.
+        writeBlock(lines, restorePrompt) {
+            var saved = this.buffer;
+            this.clearCurrentInput();
+            if (this.currentXPosition > 0) {
+                this.advanceLine();
+            }
+            for (var i = 0; i < lines.length; i++) {
+                if (lines[i] !== "") {
+                    this.putText(lines[i]);
+                }
+                this.advanceLine();
+            }
+            if (restorePrompt && _OsShell) {
+                _OsShell.putPrompt();
+                if (saved.length > 0) {
+                    this.putText(saved);
+                    this.buffer = saved;
+                }
+            }
+        }
         putText(text) {
             /*  My first inclination here was to write two functions: putChar() and putString().
                 Then I remembered that JavaScript is (sadly) untyped and it won't differentiate

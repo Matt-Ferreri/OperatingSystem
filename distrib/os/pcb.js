@@ -20,7 +20,12 @@ var TSOS;
         priority;
         location;
         segment;
-        constructor(pid, base, limit, pc = 0, acc = 0, xReg = 0, yReg = 0, zFlag = 0, ir = 0, state = "Resident", priority = 0, location = "Memory", segment = 0) {
+        executeCycles;
+        arrivalCycle;
+        turnaroundTime;
+        waitTime;
+        metricsReported;
+        constructor(pid, base, limit, pc = 0, acc = 0, xReg = 0, yReg = 0, zFlag = 0, ir = 0, state = "Resident", priority = 0, location = "Memory", segment = 0, executeCycles = 0, arrivalCycle = -1, turnaroundTime = 0, waitTime = 0, metricsReported = false) {
             this.pid = pid;
             this.base = base;
             this.limit = limit;
@@ -34,6 +39,11 @@ var TSOS;
             this.priority = priority;
             this.location = location;
             this.segment = segment;
+            this.executeCycles = executeCycles;
+            this.arrivalCycle = arrivalCycle;
+            this.turnaroundTime = turnaroundTime;
+            this.waitTime = waitTime;
+            this.metricsReported = metricsReported;
         }
     }
     TSOS.Pcb = Pcb;

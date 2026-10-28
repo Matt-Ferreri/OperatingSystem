@@ -22,6 +22,7 @@ var TSOS;
             _ReadyQueue = new TSOS.Queue(); // Processes waiting for a turn on the CPU.
             _Scheduler = new TSOS.Scheduler();
             _QuantumCount = 0;
+            _CpuCycles = 0;
             // Initialize the console.
             _Console = new TSOS.Console(); // The command line interface / console I/O device.
             _Console.init();

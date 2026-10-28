@@ -331,7 +331,7 @@ var TSOS;
                 _StdOut.putText("No free memory segment. All three slots are in use.");
                 return;
             }
-            _StdOut.putText("Process " + pcb.pid + " loaded at " + pcb.base + " (" + bytes.length + " bytes).");
+            _StdOut.putText("Process with pid " + pcb.pid + " loaded at " + pcb.base + " (" + bytes.length + " bytes).");
         }
         shellRun(args) {
             if (args.length < 1) {
@@ -382,6 +382,7 @@ var TSOS;
             }
             for (var j = 0; j < waiting.length; j++) {
                 waiting[j].state = "Ready";
+                _Scheduler.noteArrival(waiting[j]);
                 _ReadyQueue.enqueue(waiting[j]);
             }
             _Scheduler.dispatch();
@@ -425,6 +426,7 @@ var TSOS;
             else {
                 _Scheduler.removeFromReady(pcb);
                 pcb.state = "Killed";
+                _Scheduler.reportMetrics(pcb, false);
                 TSOS.Control.hostUpdatePcbDisplay();
             }
             _StdOut.putText("Process " + pid + " killed.");
@@ -447,6 +449,7 @@ var TSOS;
                 }
                 _Scheduler.removeFromReady(pcb);
                 pcb.state = "Killed";
+                _Scheduler.reportMetrics(pcb, false);
                 killed++;
             }
             if (running) {

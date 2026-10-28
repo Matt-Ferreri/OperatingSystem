@@ -38,6 +38,12 @@ module TSOS {
         public cycle(): void {
             _Kernel.krnTrace('CPU cycle');
 
+            // This instruction counts toward turnaround and wait time.
+            if (_CurrentPCB) {
+                _CurrentPCB.executeCycles++;
+                _CpuCycles++;
+            }
+
             // Fetch
             this.IR = _MemoryAccessor.read(this.PC);
             this.PC = (this.PC + 1) & 0xFF;
@@ -157,18 +163,21 @@ module TSOS {
         }
 
         private terminateProcess(): void {
-            this.endProcess("Terminated");
+            this.endProcess("Terminated", true);
         }
 
         // Stop the current process from outside (e.g. Ctrl+C) and mark it killed.
         public killProcess(): void {
-            this.endProcess("Killed");
+            this.endProcess("Killed", false);
         }
 
-        private endProcess(finalState: string): void {
+        private endProcess(finalState: string, restorePrompt: boolean): void {
             if (_CurrentPCB) {
                 this.syncPcb();
                 _CurrentPCB.state = finalState;
+                if (_Scheduler) {
+                    _Scheduler.reportMetrics(_CurrentPCB, restorePrompt);
+                }
             }
             if (_Scheduler) {
                 _Scheduler.onProcessExit();

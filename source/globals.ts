@@ -42,6 +42,8 @@ var _ReadyQueue: TSOS.Queue = null;
 var _Scheduler: TSOS.Scheduler = null;
 var _Quantum: number = CPU_QUANTUM;
 var _QuantumCount: number = 0;
+// Instruction cycles executed since boot. Turnaround and wait time are measured from this.
+var _CpuCycles: number = 0;
 
 var _OSclock: number = 0;  // Page 23.
 

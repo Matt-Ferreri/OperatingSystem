@@ -21,7 +21,12 @@ module TSOS {
             public state: string = "Resident",
             public priority: number = 0,
             public location: string = "Memory",
-            public segment: number = 0) {
+            public segment: number = 0,
+            public executeCycles: number = 0,
+            public arrivalCycle: number = -1,
+            public turnaroundTime: number = 0,
+            public waitTime: number = 0,
+            public metricsReported: boolean = false) {
         }
     }
 }

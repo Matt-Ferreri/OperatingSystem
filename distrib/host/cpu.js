@@ -41,6 +41,11 @@ var TSOS;
         }
         cycle() {
             _Kernel.krnTrace('CPU cycle');
+            // This instruction counts toward turnaround and wait time.
+            if (_CurrentPCB) {
+                _CurrentPCB.executeCycles++;
+                _CpuCycles++;
+            }
             // Fetch
             this.IR = _MemoryAccessor.read(this.PC);
             this.PC = (this.PC + 1) & 0xFF;
@@ -120,6 +125,7 @@ var TSOS;
             this.syncPcb();
             TSOS.Control.hostUpdateCpuDisplay();
             TSOS.Control.hostUpdateMemoryDisplay(_Memory.cells);
+            TSOS.Control.hostUpdatePcbDisplay();
         }
         // Little-endian 2-byte address operand; advances PC by 2.
         fetchAddressOperand() {
@@ -141,16 +147,19 @@ var TSOS;
             _CurrentPCB.ir = this.IR;
         }
         terminateProcess() {
-            this.endProcess("Terminated");
+            this.endProcess("Terminated", true);
         }
         // Stop the current process from outside (e.g. Ctrl+C) and mark it killed.
         killProcess() {
-            this.endProcess("Killed");
+            this.endProcess("Killed", false);
         }
-        endProcess(finalState) {
+        endProcess(finalState, restorePrompt) {
             if (_CurrentPCB) {
                 this.syncPcb();
                 _CurrentPCB.state = finalState;
+                if (_Scheduler) {
+                    _Scheduler.reportMetrics(_CurrentPCB, restorePrompt);
+                }
             }
             if (_Scheduler) {
                 _Scheduler.onProcessExit();

@@ -69,6 +69,7 @@ module TSOS {
             this.residentList = [];
             _CurrentPCB = null;
             _QuantumCount = 0;
+            _CpuCycles = 0;
             if (_ReadyQueue) {
                 while (!_ReadyQueue.isEmpty()) {
                     _ReadyQueue.dequeue();
