@@ -61,7 +61,7 @@ var TSOS;
         }
         onCycle() {
             _QuantumCount++;
-            if (_QuantumCount >= CPU_QUANTUM) {
+            if (_QuantumCount >= _Quantum) {
                 this.contextSwitch();
             }
         }

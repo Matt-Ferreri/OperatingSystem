@@ -21,7 +21,7 @@ const KEYBOARD_IRQ = 1;
 const MEMORY_SIZE = 768;
 const MEMORY_SEGMENT_SIZE = 256;
 const MEMORY_SEGMENT_BASES = [0, 256, 512]; // 0-255, 256-511, 512-767
-// Round-robin slice length, in CPU cycles, used by runall.
+// Default round-robin slice length, in CPU cycles. q changes the live value.
 const CPU_QUANTUM = 6;
 //
 // Global Variables
@@ -34,6 +34,7 @@ var _MemoryManager = null;
 var _CurrentPCB = null;
 var _ReadyQueue = null;
 var _Scheduler = null;
+var _Quantum = CPU_QUANTUM;
 var _QuantumCount = 0;
 var _OSclock = 0; // Page 23.
 var _Mode = 0; // (currently unused)  0 = Kernel Mode, 1 = User Mode.  See page 21.

@@ -85,6 +85,9 @@ var TSOS;
             // killall - stop every process
             sc = new TSOS.ShellCommand(this.shellKillall, "killall", "- Kills all processes.");
             this.commandList[this.commandList.length] = sc;
+            // q <int> - set the round-robin quantum
+            sc = new TSOS.ShellCommand(this.shellQuantum, "q", "<int> - Sets the Round Robin quantum in CPU cycles.");
+            this.commandList[this.commandList.length] = sc;
             // Display the initial prompt.
             this.putPrompt();
         }
@@ -458,6 +461,25 @@ var TSOS;
                 return;
             }
             _StdOut.putText("All processes killed.");
+        }
+        shellQuantum(args) {
+            if (args.length < 1) {
+                _StdOut.putText("Usage: q <int>  Quantum is " + _Quantum + ".");
+                return;
+            }
+            var text = args[0];
+            if (!/^\d+$/.test(text)) {
+                _StdOut.putText("Quantum must be a positive integer.");
+                return;
+            }
+            var quantum = parseInt(text, 10);
+            if (quantum < 1) {
+                _StdOut.putText("Quantum must be a positive integer.");
+                return;
+            }
+            _Quantum = quantum;
+            _QuantumCount = 0;
+            _StdOut.putText("Quantum set to " + _Quantum + ".");
         }
         shellClearmem(args) {
             if (!_MemoryManager.clearMemory()) {
