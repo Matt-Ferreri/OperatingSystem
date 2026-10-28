@@ -44,6 +44,22 @@ var TSOS;
             TSOS.Control.hostUpdatePcbDisplay();
             return pcb;
         }
+        // Zero every segment and release the resident processes that occupied them.
+        // Returns false when a process is still executing.
+        clearMemory() {
+            if (_CPU && _CPU.isExecuting) {
+                return false;
+            }
+            for (var i = 0; i < MEMORY_SIZE; i++) {
+                _Memory.cells[i] = 0;
+            }
+            this.segmentUsed = [false, false, false];
+            this.residentList = [];
+            _CurrentPCB = null;
+            TSOS.Control.hostUpdateMemoryDisplay(_Memory.cells);
+            TSOS.Control.hostUpdatePcbDisplay();
+            return true;
+        }
         findPcb(pid) {
             for (var i = 0; i < this.residentList.length; i++) {
                 if (this.residentList[i].pid === pid) {

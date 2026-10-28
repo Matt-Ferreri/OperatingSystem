@@ -53,6 +53,26 @@ module TSOS {
             return pcb;
         }
 
+        // Zero every segment and release the resident processes that occupied them.
+        // Returns false when a process is still executing.
+        public clearMemory(): boolean {
+            if (_CPU && _CPU.isExecuting) {
+                return false;
+            }
+
+            for (var i = 0; i < MEMORY_SIZE; i++) {
+                _Memory.cells[i] = 0;
+            }
+
+            this.segmentUsed = [false, false, false];
+            this.residentList = [];
+            _CurrentPCB = null;
+
+            Control.hostUpdateMemoryDisplay(_Memory.cells);
+            Control.hostUpdatePcbDisplay();
+            return true;
+        }
+
         public findPcb(pid: number): Pcb {
             for (var i = 0; i < this.residentList.length; i++) {
                 if (this.residentList[i].pid === pid) {

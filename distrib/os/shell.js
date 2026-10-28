@@ -70,6 +70,9 @@ var TSOS;
             // run <pid> - execute a loaded process
             sc = new TSOS.ShellCommand(this.shellRun, "run", "<pid> - Runs the process with the given PID.");
             this.commandList[this.commandList.length] = sc;
+            // clearmem - zero every memory segment
+            sc = new TSOS.ShellCommand(this.shellClearmem, "clearmem", "- Clears all memory segments back to 0.");
+            this.commandList[this.commandList.length] = sc;
             // ps  - list the running processes and their IDs
             // kill <id> - kills the specified process id.
             // Display the initial prompt.
@@ -361,6 +364,13 @@ var TSOS;
                 TSOS.Control.hostUpdateMemoryDisplay(_Memory.cells);
             }
             _StdOut.putText("Running process " + pid + ".");
+        }
+        shellClearmem(args) {
+            if (!_MemoryManager.clearMemory()) {
+                _StdOut.putText("Cannot clear memory while a process is running.");
+                return;
+            }
+            _StdOut.putText("Memory cleared.");
         }
         shellRot13(args) {
             if (args.length > 0) {
