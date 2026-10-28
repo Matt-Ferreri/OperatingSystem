@@ -308,7 +308,11 @@ module TSOS {
                 return;
             }
             Control.hostLog("Single step", "host");
+            var active = _CurrentPCB;
             _CPU.cycle();
+            if (_Scheduler) {
+                _Scheduler.afterCycle(active);
+            }
         }
 
         private static hostUpdateStepButton(): void {

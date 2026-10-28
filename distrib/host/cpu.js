@@ -148,16 +148,21 @@ var TSOS;
             this.endProcess("Killed");
         }
         endProcess(finalState) {
-            this.isExecuting = false;
             if (_CurrentPCB) {
                 this.syncPcb();
                 _CurrentPCB.state = finalState;
-                TSOS.Control.hostUpdatePcbDisplay();
-                _CurrentPCB = null;
             }
-            TSOS.Control.hostUpdateCpuDisplay();
-            if (_Memory) {
-                TSOS.Control.hostUpdateMemoryDisplay(_Memory.cells);
+            if (_Scheduler) {
+                _Scheduler.onProcessExit();
+            }
+            else {
+                this.isExecuting = false;
+                _CurrentPCB = null;
+                TSOS.Control.hostUpdateCpuDisplay();
+                TSOS.Control.hostUpdatePcbDisplay();
+                if (_Memory) {
+                    TSOS.Control.hostUpdateMemoryDisplay(_Memory.cells);
+                }
             }
         }
     }

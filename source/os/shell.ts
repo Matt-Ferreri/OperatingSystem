@@ -127,6 +127,12 @@ module TSOS {
                                   "- Clears all memory segments back to 0.");
             this.commandList[this.commandList.length] = sc;
 
+            // runall - run every loaded program together
+            sc = new ShellCommand(this.shellRunall,
+                                  "runall",
+                                  "- Runs every loaded program at once.");
+            this.commandList[this.commandList.length] = sc;
+
 
             // ps  - list the running processes and their IDs
             // kill <id> - kills the specified process id.
@@ -429,23 +435,35 @@ module TSOS {
                 return;
             }
 
-            // Load PCB context onto the CPU and start execution.
-            _CurrentPCB = pcb;
-            _CPU.PC = pcb.pc;
-            _CPU.Acc = pcb.acc;
-            _CPU.Xreg = pcb.xReg;
-            _CPU.Yreg = pcb.yReg;
-            _CPU.Zflag = pcb.zFlag;
-            _CPU.IR = pcb.ir;
-            pcb.state = "Running";
-            _CPU.isExecuting = true;
-
-            Control.hostUpdateCpuDisplay();
-            Control.hostUpdatePcbDisplay();
-            if (_SingleStep) {
-                Control.hostUpdateMemoryDisplay(_Memory.cells);
-            }
+            _Scheduler.loadToCpu(pcb);
             _StdOut.putText("Running process " + pid + ".");
+        }
+
+        public shellRunall(args: string[]) {
+            if (_CPU.isExecuting) {
+                _StdOut.putText("A process is already running.");
+                return;
+            }
+
+            var waiting = [];
+            for (var i = 0; i < _MemoryManager.residentList.length; i++) {
+                var pcb = _MemoryManager.residentList[i];
+                if (pcb.state === "Resident" || pcb.state === "Ready") {
+                    waiting[waiting.length] = pcb;
+                }
+            }
+
+            if (waiting.length === 0) {
+                _StdOut.putText("No programs are loaded.");
+                return;
+            }
+
+            for (var j = 0; j < waiting.length; j++) {
+                waiting[j].state = "Ready";
+                _ReadyQueue.enqueue(waiting[j]);
+            }
+            _Scheduler.dispatch();
+            _StdOut.putText("Running all programs.");
         }
 
         public shellClearmem(args: string[]) {

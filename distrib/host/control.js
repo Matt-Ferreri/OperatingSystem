@@ -267,7 +267,11 @@ var TSOS;
                 return;
             }
             Control.hostLog("Single step", "host");
+            var active = _CurrentPCB;
             _CPU.cycle();
+            if (_Scheduler) {
+                _Scheduler.afterCycle(active);
+            }
         }
         static hostUpdateStepButton() {
             var stepBtn = document.getElementById("btnStep");

@@ -25,6 +25,9 @@ const MEMORY_SIZE: number = 768;
 const MEMORY_SEGMENT_SIZE: number = 256;
 const MEMORY_SEGMENT_BASES: number[] = [0, 256, 512]; // 0-255, 256-511, 512-767
 
+// Round-robin slice length, in CPU cycles, used by runall.
+const CPU_QUANTUM: number = 6;
+
 
 //
 // Global Variables
@@ -35,6 +38,9 @@ var _Memory: TSOS.Memory;
 var _MemoryAccessor: TSOS.MemoryAccessor;
 var _MemoryManager: any = null;
 var _CurrentPCB: any = null;
+var _ReadyQueue: TSOS.Queue = null;
+var _Scheduler: TSOS.Scheduler = null;
+var _QuantumCount: number = 0;
 
 var _OSclock: number = 0;  // Page 23.
 

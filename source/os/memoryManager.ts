@@ -67,6 +67,12 @@ module TSOS {
             this.segmentUsed = [false, false, false];
             this.residentList = [];
             _CurrentPCB = null;
+            _QuantumCount = 0;
+            if (_ReadyQueue) {
+                while (!_ReadyQueue.isEmpty()) {
+                    _ReadyQueue.dequeue();
+                }
+            }
 
             Control.hostUpdateMemoryDisplay(_Memory.cells);
             Control.hostUpdatePcbDisplay();

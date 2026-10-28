@@ -19,6 +19,9 @@ var TSOS;
             _KernelInterruptQueue = new TSOS.Queue(); // A (currently) non-priority queue for interrupt requests (IRQs).
             _KernelBuffers = new Array(); // Buffers... for the kernel.
             _KernelInputQueue = new TSOS.Queue(); // Where device input lands before being processed out somewhere.
+            _ReadyQueue = new TSOS.Queue(); // Processes waiting for a turn on the CPU.
+            _Scheduler = new TSOS.Scheduler();
+            _QuantumCount = 0;
             // Initialize the console.
             _Console = new TSOS.Console(); // The command line interface / console I/O device.
             _Console.init();
@@ -71,7 +74,11 @@ var TSOS;
             }
             else if (_CPU.isExecuting && !_SingleStep) {
                 // Auto-run one CPU cycle unless single-step mode is holding execution.
+                var active = _CurrentPCB;
                 _CPU.cycle();
+                if (_Scheduler) {
+                    _Scheduler.afterCycle(active);
+                }
             }
             else { // If there are no interrupts and there is nothing being executed then just be idle.
                 this.krnTrace("Idle");

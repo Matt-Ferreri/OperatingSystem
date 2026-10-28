@@ -166,16 +166,20 @@ module TSOS {
         }
 
         private endProcess(finalState: string): void {
-            this.isExecuting = false;
             if (_CurrentPCB) {
                 this.syncPcb();
                 _CurrentPCB.state = finalState;
-                Control.hostUpdatePcbDisplay();
-                _CurrentPCB = null;
             }
-            Control.hostUpdateCpuDisplay();
-            if (_Memory) {
-                Control.hostUpdateMemoryDisplay(_Memory.cells);
+            if (_Scheduler) {
+                _Scheduler.onProcessExit();
+            } else {
+                this.isExecuting = false;
+                _CurrentPCB = null;
+                Control.hostUpdateCpuDisplay();
+                Control.hostUpdatePcbDisplay();
+                if (_Memory) {
+                    Control.hostUpdateMemoryDisplay(_Memory.cells);
+                }
             }
         }
     }
