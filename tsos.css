@@ -378,9 +378,28 @@ textarea::placeholder {
   color: var(--text);
 }
 
+.disk-table tr.disk-track-header td {
+  padding-top: 10px;
+  padding-bottom: 4px;
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-input);
+  position: sticky;
+  top: 1.4em;
+  z-index: 1;
+}
+
+.disk-table .disk-ascii {
+  white-space: pre;
+  color: var(--text);
+  padding-right: 12px;
+}
+
 .disk-table .disk-data {
   white-space: nowrap;
-  color: var(--text);
+  color: var(--muted);
 }
 
 .memory-table {

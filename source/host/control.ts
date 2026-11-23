@@ -257,11 +257,23 @@ module TSOS {
                 return (value & 0xFF).toString(16).toUpperCase().padStart(2, "0");
             };
 
+            // Printable ASCII for the viewer; non-printable bytes become '.'.
+            var toAscii = function (value: number): string {
+                var ch = value & 0xFF;
+                if (ch >= 0x20 && ch <= 0x7E) {
+                    return String.fromCharCode(ch);
+                }
+                return ".";
+            };
+
             var html = "<table class='disk-table'><thead><tr>" +
-                "<th>TSB</th><th>Use</th><th>Next</th><th>Data</th>" +
+                "<th>TSB</th><th>Use</th><th>Next</th><th>ASCII</th><th>Data</th>" +
                 "</tr></thead><tbody>";
 
             for (var t = 0; t < DISK_TRACKS; t++) {
+                var trackLabel = (t === 0) ? "Track 0 — Directory" : ("Track " + t + " — Data");
+                html += "<tr class='disk-track-header'><td colspan='5'>" + trackLabel + "</td></tr>";
+
                 for (var s = 0; s < DISK_SECTORS; s++) {
                     for (var b = 0; b < DISK_BLOCKS; b++) {
                         var bytes = _Disk.read(t, s, b);
@@ -270,11 +282,13 @@ module TSOS {
                             ? "—"
                             : (bytes[1] + ":" + bytes[2] + ":" + bytes[3]);
                         var dataHex = "";
+                        var dataAscii = "";
                         for (var i = DISK_HEADER_SIZE; i < DISK_BLOCK_SIZE; i++) {
                             if (i > DISK_HEADER_SIZE) {
                                 dataHex += " ";
                             }
                             dataHex += toHex(bytes[i]);
+                            dataAscii += toAscii(bytes[i]);
                         }
                         var classes = [];
                         if (t === 0) {
@@ -288,6 +302,7 @@ module TSOS {
                             "<td class='disk-tsb'>" + t + ":" + s + ":" + b + "</td>" +
                             "<td>" + (inUse ? "1" : "0") + "</td>" +
                             "<td>" + next + "</td>" +
+                            "<td class='disk-ascii'>" + dataAscii + "</td>" +
                             "<td class='disk-data'>" + dataHex + "</td>" +
                             "</tr>";
                     }
