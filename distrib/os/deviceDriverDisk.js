@@ -82,6 +82,7 @@ var TSOS;
         isDirectoryTSB(track, sector, block) {
             return track === 0 && !(sector === 0 && block === 0);
         }
+        // Directory data layout: [filename...][0x00][creationDate ms ASCII...][0x00...]
         readFilename(bytes) {
             var name = "";
             for (var i = DISK_HEADER_SIZE; i < DISK_BLOCK_SIZE; i++) {
@@ -92,13 +93,59 @@ var TSOS;
             }
             return name;
         }
-        writeFilename(bytes, filename) {
+        readCreationDate(bytes) {
+            // Skip past null-terminated filename, then read timestamp digits.
+            var i = DISK_HEADER_SIZE;
+            while (i < DISK_BLOCK_SIZE && bytes[i] !== 0) {
+                i++;
+            }
+            if (i >= DISK_BLOCK_SIZE) {
+                return null;
+            }
+            i++; // skip filename null
+            var stamp = "";
+            while (i < DISK_BLOCK_SIZE && bytes[i] !== 0) {
+                stamp += String.fromCharCode(bytes[i]);
+                i++;
+            }
+            if (stamp.length === 0) {
+                return null;
+            }
+            var ms = parseInt(stamp, 10);
+            return isNaN(ms) ? null : ms;
+        }
+        writeFilename(bytes, filename, createdMs) {
+            var existingDate = this.readCreationDate(bytes);
             for (var i = DISK_HEADER_SIZE; i < DISK_BLOCK_SIZE; i++) {
                 bytes[i] = 0;
             }
             for (var j = 0; j < filename.length && (DISK_HEADER_SIZE + j) < DISK_BLOCK_SIZE; j++) {
                 bytes[DISK_HEADER_SIZE + j] = filename.charCodeAt(j) & 0xFF;
             }
+            var dateMs = (createdMs !== undefined) ? createdMs : existingDate;
+            if (dateMs === null || dateMs === undefined) {
+                return;
+            }
+            var stamp = String(dateMs);
+            var offset = DISK_HEADER_SIZE + filename.length + 1; // after filename null
+            for (var k = 0; k < stamp.length && (offset + k) < DISK_BLOCK_SIZE; k++) {
+                bytes[offset + k] = stamp.charCodeAt(k) & 0xFF;
+            }
+        }
+        fileSize(startTSB) {
+            var size = 0;
+            var chain = this.collectDataChain(startTSB);
+            for (var i = 0; i < chain.length; i++) {
+                var tsb = chain[i];
+                var bytes = this.readBlock(tsb[0], tsb[1], tsb[2]);
+                for (var j = DISK_HEADER_SIZE; j < DISK_BLOCK_SIZE; j++) {
+                    if (bytes[j] === 0) {
+                        return size;
+                    }
+                    size++;
+                }
+            }
+            return size;
         }
         findFreeDirectoryBlock() {
             for (var s = 0; s < DISK_SECTORS; s++) {
@@ -193,7 +240,10 @@ var TSOS;
             }
             return count;
         }
+        // Reserve room after the filename null for a millisecond creation stamp.
+        static MAX_FILENAME_LENGTH = DISK_DATA_SIZE - 14;
         // create <filename>: allocate a directory entry + empty first data block.
+        // Names that begin with '.' are hidden from plain ls (visible with ls -a).
         // Returns null on success, or an error message string.
         create(filename) {
             if (!this.isFormatted()) {
@@ -202,8 +252,8 @@ var TSOS;
             if (!filename || filename.length === 0) {
                 return "Filename required.";
             }
-            if (filename.length > DISK_DATA_SIZE) {
-                return "Filename too long (max " + DISK_DATA_SIZE + " characters).";
+            if (filename.length > DeviceDriverDisk.MAX_FILENAME_LENGTH) {
+                return "Filename too long (max " + DeviceDriverDisk.MAX_FILENAME_LENGTH + " characters).";
             }
             if (this.fileExists(filename)) {
                 return "File already exists.";
@@ -224,10 +274,43 @@ var TSOS;
             dirBlock[1] = dataTSB[0];
             dirBlock[2] = dataTSB[1];
             dirBlock[3] = dataTSB[2];
-            this.writeFilename(dirBlock, filename);
+            this.writeFilename(dirBlock, filename, Date.now());
             this.writeBlock(dirTSB[0], dirTSB[1], dirTSB[2], dirBlock);
             TSOS.Control.hostUpdateDiskDisplay();
             return null;
+        }
+        // list: return directory entries. Hidden files (name starts with '.') are
+        // omitted unless showHidden is true. Each entry includes size and create date.
+        list(showHidden = false) {
+            if (!this.isFormatted()) {
+                return { error: "Disk is not formatted." };
+            }
+            var files = [];
+            for (var s = 0; s < DISK_SECTORS; s++) {
+                for (var b = 0; b < DISK_BLOCKS; b++) {
+                    if (!this.isDirectoryTSB(0, s, b)) {
+                        continue;
+                    }
+                    var bytes = this.readBlock(0, s, b);
+                    if (!this.isInUse(bytes)) {
+                        continue;
+                    }
+                    var name = this.readFilename(bytes);
+                    if (!showHidden && name.length > 0 && name.charAt(0) === ".") {
+                        continue;
+                    }
+                    var createdMs = this.readCreationDate(bytes);
+                    var created = createdMs !== null
+                        ? new Date(createdMs).toLocaleString()
+                        : "unknown";
+                    files[files.length] = {
+                        name: name,
+                        size: this.fileSize([bytes[1], bytes[2], bytes[3]]),
+                        created: created
+                    };
+                }
+            }
+            return { files: files };
         }
         // read <filename>: return file contents, or { error } on failure.
         read(filename) {
@@ -354,8 +437,8 @@ var TSOS;
                 !newFilename || newFilename.length === 0) {
                 return "Usage: copy <existing filename> <new filename>";
             }
-            if (newFilename.length > DISK_DATA_SIZE) {
-                return "Filename too long (max " + DISK_DATA_SIZE + " characters).";
+            if (newFilename.length > DeviceDriverDisk.MAX_FILENAME_LENGTH) {
+                return "Filename too long (max " + DeviceDriverDisk.MAX_FILENAME_LENGTH + " characters).";
             }
             if (existingFilename === newFilename) {
                 return "Source and destination filenames must differ.";
@@ -391,8 +474,8 @@ var TSOS;
                 !newFilename || newFilename.length === 0) {
                 return "Usage: rename <current filename> <new filename>";
             }
-            if (newFilename.length > DISK_DATA_SIZE) {
-                return "Filename too long (max " + DISK_DATA_SIZE + " characters).";
+            if (newFilename.length > DeviceDriverDisk.MAX_FILENAME_LENGTH) {
+                return "Filename too long (max " + DeviceDriverDisk.MAX_FILENAME_LENGTH + " characters).";
             }
             if (currentFilename === newFilename) {
                 return "Current and new filenames must differ.";

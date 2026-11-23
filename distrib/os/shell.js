@@ -109,6 +109,9 @@ var TSOS;
             // rename <current filename> <new filename> - rename a file
             sc = new TSOS.ShellCommand(this.shellRename, "rename", "<current filename> <new filename> - Renames a file.");
             this.commandList[this.commandList.length] = sc;
+            // ls [-a] - list files on disk (hidden files start with '.')
+            sc = new TSOS.ShellCommand(this.shellLs, "ls", "[-a] - Lists files on disk. -a shows hidden files with size and create date.");
+            this.commandList[this.commandList.length] = sc;
             // Display the initial prompt.
             this.putPrompt();
         }
@@ -305,6 +308,11 @@ var TSOS;
                         break;
                     case "rename":
                         _StdOut.putText("Renames a file. Usage: rename <current filename> <new filename>.");
+                        break;
+                    case "ls":
+                        _StdOut.putText("Lists files on disk. Names starting with '.' are hidden.");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("Usage: ls [-a]. -a shows hidden files plus size and create date.");
                         break;
                     // TODO: Make descriptive MANual page entries for the the rest of the shell commands here.
                     default:
@@ -699,6 +707,43 @@ var TSOS;
             }
             else {
                 _StdOut.putText("File renamed: " + args[0] + " -> " + args[1]);
+            }
+        }
+        shellLs(args) {
+            if (!_krnDiskDriver) {
+                _StdOut.putText("Disk driver is not loaded.");
+                return;
+            }
+            var showAll = false;
+            if (args.length > 0) {
+                if (args[0] === "-a") {
+                    showAll = true;
+                }
+                else {
+                    _StdOut.putText("Usage: ls [-a]");
+                    return;
+                }
+            }
+            var result = _krnDiskDriver.list(showAll);
+            if (result.error) {
+                _StdOut.putText(result.error);
+                return;
+            }
+            var files = result.files;
+            if (!files || files.length === 0) {
+                _StdOut.putText("No files on disk.");
+                return;
+            }
+            for (var i = 0; i < files.length; i++) {
+                if (i > 0) {
+                    _StdOut.advanceLine();
+                }
+                if (showAll) {
+                    _StdOut.putText(files[i].name + "  " + files[i].size + " bytes  " + files[i].created);
+                }
+                else {
+                    _StdOut.putText(files[i].name);
+                }
             }
         }
     }
