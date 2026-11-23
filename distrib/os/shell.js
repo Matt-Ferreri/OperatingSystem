@@ -283,10 +283,72 @@ var TSOS;
             _StdOut.putText(APP_NAME + " version " + APP_VERSION);
         }
         shellHelp(args) {
-            _StdOut.putText("Commands:");
-            for (var i in _OsShell.commandList) {
+            // Shell commands are invoked as bare fn(args), so use _OsShell — not this.
+            // Short blurbs keep each entry on one canvas line.
+            var blurbs = {
+                ver: "version info",
+                help: "list commands",
+                shutdown: "halt the OS",
+                cls: "clear the screen",
+                man: "manual for a command",
+                trace: "toggle OS trace",
+                rot13: "rot13 encode text",
+                prompt: "set the prompt",
+                date: "show date/time",
+                whereami: "show location",
+                inspire: "random athlete quote",
+                whoami: "show current user",
+                status: "set status bar text",
+                bsod: "force a kernel trap",
+                load: "load program to memory",
+                run: "run process by PID",
+                clearmem: "zero all memory",
+                runall: "run all loaded programs",
+                ps: "list processes",
+                kill: "kill one process",
+                killall: "kill all processes",
+                q: "set RR quantum",
+                format: "format the disk",
+                create: "create a file",
+                read: "read a file",
+                write: "write to a file",
+                delete: "delete a file",
+                copy: "copy a file",
+                rename: "rename a file",
+                ls: "list files",
+                link: "hard-link two names",
+                recover: "undelete a file",
+                chkdsk: "reclaim orphan blocks",
+                fsck: "same as chkdsk",
+                defrag: "pack data blocks",
+                alias: "alias a command"
+            };
+            var list = _OsShell.commandList;
+            var nameWidth = 0;
+            for (var i = 0; i < list.length; i++) {
+                if (list[i].command.length > nameWidth) {
+                    nameWidth = list[i].command.length;
+                }
+            }
+            _StdOut.putText("Commands (man <cmd> for details):");
+            for (var j = 0; j < list.length; j++) {
+                var name = list[j].command;
+                var padded = name;
+                while (padded.length < nameWidth) {
+                    padded += " ";
+                }
+                var blurb = blurbs[name];
+                if (!blurb) {
+                    blurb = list[j].description || "";
+                    if (blurb.indexOf("- ") === 0) {
+                        blurb = blurb.substring(2);
+                    }
+                    if (blurb.length > 36) {
+                        blurb = blurb.substring(0, 33) + "...";
+                    }
+                }
                 _StdOut.advanceLine();
-                _StdOut.putText("  " + _OsShell.commandList[i].command + " " + _OsShell.commandList[i].description);
+                _StdOut.putText("  " + padded + "  " + blurb);
             }
         }
         shellShutdown(args) {
@@ -883,11 +945,12 @@ var TSOS;
                 return;
             }
             var source = undefined;
-            for (var i = 0; i < this.commandList.length; i++) {
-                if (this.commandList[i].command === command1) {
-                    source = this.commandList[i];
+            var list = _OsShell.commandList;
+            for (var i = 0; i < list.length; i++) {
+                if (list[i].command === command1) {
+                    source = list[i];
                 }
-                if (this.commandList[i].command === command2) {
+                if (list[i].command === command2) {
                     _StdOut.putText("Command already exists: " + command2);
                     return;
                 }
@@ -898,7 +961,7 @@ var TSOS;
             }
             // Same function / description under the new name so either works.
             var sc = new TSOS.ShellCommand(source.func, command2, source.description);
-            this.commandList[this.commandList.length] = sc;
+            list[list.length] = sc;
             _StdOut.putText("Aliased: " + command1 + " -> " + command2);
         }
     }
