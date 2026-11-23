@@ -164,6 +164,12 @@ module TSOS {
                                   "[-quick] - Formats the disk (all blocks, or headers only with -quick).");
             this.commandList[this.commandList.length] = sc;
 
+            // create <filename> - create an empty file on disk
+            sc = new ShellCommand(this.shellCreate,
+                                  "create",
+                                  "<filename> - Creates a file on disk.");
+            this.commandList[this.commandList.length] = sc;
+
             // Display the initial prompt.
             this.putPrompt();
         }
@@ -328,6 +334,9 @@ module TSOS {
                         break;
                     case "format":
                         _StdOut.putText("Formats the disk. Optional -quick clears only block headers.");
+                        break;
+                    case "create":
+                        _StdOut.putText("Creates a file on disk. Usage: create <filename>.");
                         break;
                     // TODO: Make descriptive MANual page entries for the the rest of the shell commands here.
                     default:
@@ -651,6 +660,24 @@ module TSOS {
                 _StdOut.putText(quick ? "Disk quick-formatted." : "Disk formatted.");
             } else {
                 _StdOut.putText("Disk format failed.");
+            }
+        }
+
+        public shellCreate(args: string[]) {
+            if (!_krnDiskDriver) {
+                _StdOut.putText("Disk driver is not loaded.");
+                return;
+            }
+            if (args.length < 1) {
+                _StdOut.putText("Usage: create <filename>");
+                return;
+            }
+
+            var err = _krnDiskDriver.create(args[0]);
+            if (err) {
+                _StdOut.putText(err);
+            } else {
+                _StdOut.putText("File created: " + args[0]);
             }
         }
     }

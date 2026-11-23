@@ -84,5 +84,120 @@ module TSOS {
                 _Disk.write(track, sector, block, data);
             }
         }
+
+        private isInUse(bytes: number[]): boolean {
+            return bytes[0] !== 0;
+        }
+
+        // Directory lives on track 0; 0:0:0 is reserved (MBR).
+        private isDirectoryTSB(track: number, sector: number, block: number): boolean {
+            return track === 0 && !(sector === 0 && block === 0);
+        }
+
+        private readFilename(bytes: number[]): string {
+            var name = "";
+            for (var i = DISK_HEADER_SIZE; i < DISK_BLOCK_SIZE; i++) {
+                if (bytes[i] === 0) {
+                    break;
+                }
+                name += String.fromCharCode(bytes[i]);
+            }
+            return name;
+        }
+
+        private writeFilename(bytes: number[], filename: string): void {
+            for (var i = DISK_HEADER_SIZE; i < DISK_BLOCK_SIZE; i++) {
+                bytes[i] = 0;
+            }
+            for (var j = 0; j < filename.length && (DISK_HEADER_SIZE + j) < DISK_BLOCK_SIZE; j++) {
+                bytes[DISK_HEADER_SIZE + j] = filename.charCodeAt(j) & 0xFF;
+            }
+        }
+
+        private findFreeDirectoryBlock(): number[] | null {
+            for (var s = 0; s < DISK_SECTORS; s++) {
+                for (var b = 0; b < DISK_BLOCKS; b++) {
+                    if (!this.isDirectoryTSB(0, s, b)) {
+                        continue;
+                    }
+                    var bytes = this.readBlock(0, s, b);
+                    if (!this.isInUse(bytes)) {
+                        return [0, s, b];
+                    }
+                }
+            }
+            return null;
+        }
+
+        private findFreeDataBlock(): number[] | null {
+            for (var t = 1; t < DISK_TRACKS; t++) {
+                for (var s = 0; s < DISK_SECTORS; s++) {
+                    for (var b = 0; b < DISK_BLOCKS; b++) {
+                        var bytes = this.readBlock(t, s, b);
+                        if (!this.isInUse(bytes)) {
+                            return [t, s, b];
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        private fileExists(filename: string): boolean {
+            for (var s = 0; s < DISK_SECTORS; s++) {
+                for (var b = 0; b < DISK_BLOCKS; b++) {
+                    if (!this.isDirectoryTSB(0, s, b)) {
+                        continue;
+                    }
+                    var bytes = this.readBlock(0, s, b);
+                    if (this.isInUse(bytes) && this.readFilename(bytes) === filename) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // create <filename>: allocate a directory entry + empty first data block.
+        // Returns null on success, or an error message string.
+        public create(filename: string): string | null {
+            if (!this.isFormatted()) {
+                return "Disk is not formatted.";
+            }
+            if (!filename || filename.length === 0) {
+                return "Filename required.";
+            }
+            if (filename.length > DISK_DATA_SIZE) {
+                return "Filename too long (max " + DISK_DATA_SIZE + " characters).";
+            }
+            if (this.fileExists(filename)) {
+                return "File already exists.";
+            }
+
+            var dirTSB = this.findFreeDirectoryBlock();
+            if (!dirTSB) {
+                return "Directory is full.";
+            }
+
+            var dataTSB = this.findFreeDataBlock();
+            if (!dataTSB) {
+                return "Disk is full.";
+            }
+
+            var dataBlock = this.emptyBlock();
+            dataBlock[0] = 0x01; // in use, no next link yet
+            this.writeBlock(dataTSB[0], dataTSB[1], dataTSB[2], dataBlock);
+
+            var dirBlock = this.emptyBlock();
+            dirBlock[0] = 0x01;
+            dirBlock[1] = dataTSB[0];
+            dirBlock[2] = dataTSB[1];
+            dirBlock[3] = dataTSB[2];
+            this.writeFilename(dirBlock, filename);
+            this.writeBlock(dirTSB[0], dirTSB[1], dirTSB[2], dirBlock);
+
+            Control.hostUpdateDiskDisplay();
+            return null;
+        }
     }
 }
