@@ -15,8 +15,9 @@ module TSOS {
         public residentList: Pcb[] = [];
 
         // Load program bytes into the next free segment.
+        // Optional priority overrides DEFAULT_PRIORITY (lower = higher priority).
         // Returns the new PCB, or null on failure.
-        public loadProgram(bytes: number[]): Pcb {
+        public loadProgram(bytes: number[], priority: number = DEFAULT_PRIORITY): Pcb {
             if (bytes.length > MEMORY_SEGMENT_SIZE) {
                 return null;
             }
@@ -46,6 +47,7 @@ module TSOS {
 
             var pcb = new Pcb(this.nextPid, base, MEMORY_SEGMENT_SIZE);
             pcb.segment = segment;
+            pcb.priority = priority;
             this.nextPid++;
             this.residentList.push(pcb);
 

@@ -23,6 +23,10 @@ const MEMORY_SEGMENT_SIZE = 256;
 const MEMORY_SEGMENT_BASES = [0, 256, 512]; // 0-255, 256-511, 512-767
 // Default round-robin slice length, in CPU cycles. q changes the live value.
 const CPU_QUANTUM = 6;
+// Default process priority (lower number = higher priority). load can override.
+const DEFAULT_PRIORITY = 5;
+// Default CPU scheduling algorithm. setschedule can switch to fcfs or priority.
+const DEFAULT_SCHEDULE = "rr";
 // Host disk layout: tracks x sectors x blocks, each block DISK_BLOCK_SIZE bytes.
 // Byte 0 = in-use flag; bytes 1-3 = next TSB; bytes 4-63 = data.
 const DISK_TRACKS = 4;
@@ -46,6 +50,8 @@ var _ReadyQueue = null;
 var _Scheduler = null;
 var _Quantum = CPU_QUANTUM;
 var _QuantumCount = 0;
+// Active scheduling algorithm: "rr" | "fcfs" | "priority". RR is the default.
+var _Schedule = DEFAULT_SCHEDULE;
 // Instruction cycles executed since boot. Turnaround and wait time are measured from this.
 var _CpuCycles = 0;
 var _OSclock = 0; // Page 23.

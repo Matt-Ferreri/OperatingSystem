@@ -19,7 +19,7 @@ module TSOS {
             public zFlag: number = 0,
             public ir: number = 0,
             public state: string = "Resident",
-            public priority: number = 0,
+            public priority: number = DEFAULT_PRIORITY,
             public location: string = "Memory",
             public segment: number = 0,
             public executeCycles: number = 0,

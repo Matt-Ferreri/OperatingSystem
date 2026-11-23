@@ -202,7 +202,8 @@ module TSOS {
             for (var i = 0; i < _MemoryManager.residentList.length; i++) {
                 var pcb = _MemoryManager.residentList[i];
                 var quantum = "—";
-                if (pcb === _CurrentPCB && pcb.state === "Running") {
+                // Quantum only applies under Round Robin.
+                if (_Schedule === "rr" && pcb === _CurrentPCB && pcb.state === "Running") {
                     quantum = String(Math.max(0, _Quantum - _QuantumCount));
                 }
                 html += "<tr>" +

@@ -13,8 +13,9 @@ var TSOS;
         nextPid = 0;
         residentList = [];
         // Load program bytes into the next free segment.
+        // Optional priority overrides DEFAULT_PRIORITY (lower = higher priority).
         // Returns the new PCB, or null on failure.
-        loadProgram(bytes) {
+        loadProgram(bytes, priority = DEFAULT_PRIORITY) {
             if (bytes.length > MEMORY_SEGMENT_SIZE) {
                 return null;
             }
@@ -39,6 +40,7 @@ var TSOS;
             this.segmentUsed[segment] = true;
             var pcb = new TSOS.Pcb(this.nextPid, base, MEMORY_SEGMENT_SIZE);
             pcb.segment = segment;
+            pcb.priority = priority;
             this.nextPid++;
             this.residentList.push(pcb);
             TSOS.Control.hostUpdateMemoryDisplay(_Memory.cells);

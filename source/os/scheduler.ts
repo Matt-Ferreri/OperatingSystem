@@ -1,8 +1,9 @@
 /* ------------
      Scheduler.ts
 
-     Round-robin scheduler. runall places every resident program on the
-     ready queue; each one runs for CPU_QUANTUM cycles, then yields.
+     CPU scheduler with Round Robin (default), FCFS, and non-preemptive
+     priority. runall places every resident program on the ready queue;
+     dispatch picks the next process according to _Schedule.
      ------------ */
 
 module TSOS {
@@ -75,6 +76,31 @@ module TSOS {
             }
         }
 
+        // Choose the next ready process for the active scheduling algorithm.
+        // RR and FCFS take the front of the queue; priority takes the lowest
+        // priority value (ties keep ready-queue order = arrival order).
+        public pickNext() {
+            if (!_ReadyQueue || _ReadyQueue.isEmpty()) {
+                return null;
+            }
+
+            if (_Schedule !== "priority") {
+                return _ReadyQueue.dequeue();
+            }
+
+            var bestIndex = 0;
+            var bestPriority = _ReadyQueue.q[0].priority;
+            for (var i = 1; i < _ReadyQueue.q.length; i++) {
+                if (_ReadyQueue.q[i].priority < bestPriority) {
+                    bestPriority = _ReadyQueue.q[i].priority;
+                    bestIndex = i;
+                }
+            }
+            var chosen = _ReadyQueue.q[bestIndex];
+            _ReadyQueue.q.splice(bestIndex, 1);
+            return chosen;
+        }
+
         public dispatch(): void {
             if (!_ReadyQueue || _ReadyQueue.isEmpty()) {
                 _CurrentPCB = null;
@@ -87,7 +113,7 @@ module TSOS {
                 }
                 return;
             }
-            this.loadToCpu(_ReadyQueue.dequeue());
+            this.loadToCpu(this.pickNext());
         }
 
         // Save the running process and run the next ready one.
@@ -112,6 +138,10 @@ module TSOS {
         }
 
         public onCycle(): void {
+            // Only Round Robin preempts on a quantum; FCFS and priority run to completion.
+            if (_Schedule !== "rr") {
+                return;
+            }
             _QuantumCount++;
             if (_QuantumCount >= _Quantum) {
                 this.contextSwitch();

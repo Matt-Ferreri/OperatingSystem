@@ -27,6 +27,10 @@ const MEMORY_SEGMENT_BASES: number[] = [0, 256, 512]; // 0-255, 256-511, 512-767
 
 // Default round-robin slice length, in CPU cycles. q changes the live value.
 const CPU_QUANTUM: number = 6;
+// Default process priority (lower number = higher priority). load can override.
+const DEFAULT_PRIORITY: number = 5;
+// Default CPU scheduling algorithm. setschedule can switch to fcfs or priority.
+const DEFAULT_SCHEDULE: string = "rr";
 
 // Host disk layout: tracks x sectors x blocks, each block DISK_BLOCK_SIZE bytes.
 // Byte 0 = in-use flag; bytes 1-3 = next TSB; bytes 4-63 = data.
@@ -53,6 +57,8 @@ var _ReadyQueue: TSOS.Queue = null;
 var _Scheduler: TSOS.Scheduler = null;
 var _Quantum: number = CPU_QUANTUM;
 var _QuantumCount: number = 0;
+// Active scheduling algorithm: "rr" | "fcfs" | "priority". RR is the default.
+var _Schedule: string = DEFAULT_SCHEDULE;
 // Instruction cycles executed since boot. Turnaround and wait time are measured from this.
 var _CpuCycles: number = 0;
 

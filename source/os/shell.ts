@@ -109,10 +109,11 @@ module TSOS {
                 "- Triggers a kernel trap and displays the BSOD.");
             this.commandList[this.commandList.length] = sc;
 
-            // load - validates user program input and writes it into memory
+            // load [priority] - validates user program input and writes it into memory
             sc = new ShellCommand(this.shellLoad,
                                   "load",
-                                  "- Loads a user program into memory from the input box.");
+                                  "[priority] - Loads a user program into memory (default priority " +
+                                  DEFAULT_PRIORITY + ").");
             this.commandList[this.commandList.length] = sc;
 
             // run <pid> - execute a loaded process
@@ -156,6 +157,18 @@ module TSOS {
             sc = new ShellCommand(this.shellQuantum,
                                   "q",
                                   "<int> - Sets the Round Robin quantum in CPU cycles.");
+            this.commandList[this.commandList.length] = sc;
+
+            // getschedule - report the active CPU scheduling algorithm
+            sc = new ShellCommand(this.shellGetSchedule,
+                                  "getschedule",
+                                  "- Displays the current CPU scheduling algorithm.");
+            this.commandList[this.commandList.length] = sc;
+
+            // setschedule <rr|fcfs|priority> - select the CPU scheduling algorithm
+            sc = new ShellCommand(this.shellSetSchedule,
+                                  "setschedule",
+                                  "<rr | fcfs | priority> - Sets the CPU scheduling algorithm.");
             this.commandList[this.commandList.length] = sc;
 
             // format [-quick] - initialize the hard drive
@@ -426,6 +439,8 @@ module TSOS {
                 kill: "kill one process",
                 killall: "kill all processes",
                 q: "set RR quantum",
+                getschedule: "show CPU schedule",
+                setschedule: "set CPU schedule",
                 format: "format the disk",
                 create: "create a file",
                 read: "read a file",
@@ -549,6 +564,24 @@ module TSOS {
                         _StdOut.advanceLine();
                         _StdOut.putText("Usage: alias <command1> <command2>.");
                         break;
+                    case "load":
+                        _StdOut.putText("Loads a program from the input box into memory.");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("Usage: load [priority]. Default priority is " +
+                            DEFAULT_PRIORITY + " (lower = higher priority).");
+                        break;
+                    case "getschedule":
+                        _StdOut.putText("Displays the current CPU scheduling algorithm (rr, fcfs, or priority).");
+                        break;
+                    case "setschedule":
+                        _StdOut.putText("Sets the CPU scheduling algorithm.");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("Usage: setschedule <rr | fcfs | priority>.");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("rr = Round Robin (default), fcfs = First Come First Served,");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("priority = non-preemptive priority (lowest number wins).");
+                        break;
                     // TODO: Make descriptive MANual page entries for the the rest of the shell commands here.
                     default:
                         _StdOut.putText("No manual entry for " + args[0] + ".");
@@ -623,6 +656,15 @@ module TSOS {
         }
 
         public shellLoad(args: string[]) {
+            var priority = DEFAULT_PRIORITY;
+            if (args.length > 0) {
+                if (!/^\d+$/.test(args[0])) {
+                    _StdOut.putText("Priority must be a non-negative integer.");
+                    return;
+                }
+                priority = parseInt(args[0], 10);
+            }
+
             var input = (<HTMLTextAreaElement>document.getElementById("taProgramInput")).value.trim();
             // Require space-separated byte pairs, e.g. "FF 0F 45" (not "4 f 5f").
             var isValid = /^[0-9a-fA-F]{2}( [0-9a-fA-F]{2})*$/.test(input);
@@ -642,13 +684,14 @@ module TSOS {
                 return;
             }
 
-            var pcb = _MemoryManager.loadProgram(bytes);
+            var pcb = _MemoryManager.loadProgram(bytes, priority);
             if (!pcb) {
                 _StdOut.putText("No free memory segment. All three slots are in use.");
                 return;
             }
 
-            _StdOut.putText("Process with pid " + pcb.pid + " loaded at " + pcb.base + " (" + bytes.length + " bytes).");
+            _StdOut.putText("Process with pid " + pcb.pid + " loaded at " + pcb.base +
+                " (" + bytes.length + " bytes, priority " + pcb.priority + ").");
         }
 
         public shellRun(args: string[]) {
@@ -825,6 +868,28 @@ module TSOS {
             _QuantumCount = 0;
             Control.hostUpdatePcbDisplay();
             _StdOut.putText("Quantum set to " + _Quantum + ".");
+        }
+
+        public shellGetSchedule(args: string[]) {
+            _StdOut.putText("Current schedule: " + _Schedule);
+        }
+
+        public shellSetSchedule(args: string[]) {
+            if (args.length < 1) {
+                _StdOut.putText("Usage: setschedule <rr | fcfs | priority>");
+                return;
+            }
+
+            var choice = args[0];
+            if (choice !== "rr" && choice !== "fcfs" && choice !== "priority") {
+                _StdOut.putText("Invalid schedule. Use rr, fcfs, or priority.");
+                return;
+            }
+
+            _Schedule = choice;
+            _QuantumCount = 0;
+            Control.hostUpdatePcbDisplay();
+            _StdOut.putText("CPU schedule set to " + _Schedule + ".");
         }
 
         public shellClearmem(args: string[]) {

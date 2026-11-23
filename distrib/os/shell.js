@@ -64,8 +64,9 @@ var TSOS;
             // bsod - intentionally crash the OS to test the trap / BSOD screen
             sc = new TSOS.ShellCommand(this.shellBsod, "bsod", "- Triggers a kernel trap and displays the BSOD.");
             this.commandList[this.commandList.length] = sc;
-            // load - validates user program input and writes it into memory
-            sc = new TSOS.ShellCommand(this.shellLoad, "load", "- Loads a user program into memory from the input box.");
+            // load [priority] - validates user program input and writes it into memory
+            sc = new TSOS.ShellCommand(this.shellLoad, "load", "[priority] - Loads a user program into memory (default priority " +
+                DEFAULT_PRIORITY + ").");
             this.commandList[this.commandList.length] = sc;
             // run <pid> - execute a loaded process
             sc = new TSOS.ShellCommand(this.shellRun, "run", "<pid> - Runs the process with the given PID.");
@@ -87,6 +88,12 @@ var TSOS;
             this.commandList[this.commandList.length] = sc;
             // q <int> - set the round-robin quantum
             sc = new TSOS.ShellCommand(this.shellQuantum, "q", "<int> - Sets the Round Robin quantum in CPU cycles.");
+            this.commandList[this.commandList.length] = sc;
+            // getschedule - report the active CPU scheduling algorithm
+            sc = new TSOS.ShellCommand(this.shellGetSchedule, "getschedule", "- Displays the current CPU scheduling algorithm.");
+            this.commandList[this.commandList.length] = sc;
+            // setschedule <rr|fcfs|priority> - select the CPU scheduling algorithm
+            sc = new TSOS.ShellCommand(this.shellSetSchedule, "setschedule", "<rr | fcfs | priority> - Sets the CPU scheduling algorithm.");
             this.commandList[this.commandList.length] = sc;
             // format [-quick] - initialize the hard drive
             sc = new TSOS.ShellCommand(this.shellFormat, "format", "[-quick] - Formats the disk (all blocks, or headers only with -quick).");
@@ -308,6 +315,8 @@ var TSOS;
                 kill: "kill one process",
                 killall: "kill all processes",
                 q: "set RR quantum",
+                getschedule: "show CPU schedule",
+                setschedule: "set CPU schedule",
                 format: "format the disk",
                 create: "create a file",
                 read: "read a file",
@@ -426,6 +435,24 @@ var TSOS;
                         _StdOut.advanceLine();
                         _StdOut.putText("Usage: alias <command1> <command2>.");
                         break;
+                    case "load":
+                        _StdOut.putText("Loads a program from the input box into memory.");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("Usage: load [priority]. Default priority is " +
+                            DEFAULT_PRIORITY + " (lower = higher priority).");
+                        break;
+                    case "getschedule":
+                        _StdOut.putText("Displays the current CPU scheduling algorithm (rr, fcfs, or priority).");
+                        break;
+                    case "setschedule":
+                        _StdOut.putText("Sets the CPU scheduling algorithm.");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("Usage: setschedule <rr | fcfs | priority>.");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("rr = Round Robin (default), fcfs = First Come First Served,");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("priority = non-preemptive priority (lowest number wins).");
+                        break;
                     // TODO: Make descriptive MANual page entries for the the rest of the shell commands here.
                     default:
                         _StdOut.putText("No manual entry for " + args[0] + ".");
@@ -498,6 +525,14 @@ var TSOS;
             _Kernel.krnTrapError("User requested kernel trap.");
         }
         shellLoad(args) {
+            var priority = DEFAULT_PRIORITY;
+            if (args.length > 0) {
+                if (!/^\d+$/.test(args[0])) {
+                    _StdOut.putText("Priority must be a non-negative integer.");
+                    return;
+                }
+                priority = parseInt(args[0], 10);
+            }
             var input = document.getElementById("taProgramInput").value.trim();
             // Require space-separated byte pairs, e.g. "FF 0F 45" (not "4 f 5f").
             var isValid = /^[0-9a-fA-F]{2}( [0-9a-fA-F]{2})*$/.test(input);
@@ -514,12 +549,13 @@ var TSOS;
                 _StdOut.putText("Program too large. Max " + MEMORY_SEGMENT_SIZE + " bytes per segment.");
                 return;
             }
-            var pcb = _MemoryManager.loadProgram(bytes);
+            var pcb = _MemoryManager.loadProgram(bytes, priority);
             if (!pcb) {
                 _StdOut.putText("No free memory segment. All three slots are in use.");
                 return;
             }
-            _StdOut.putText("Process with pid " + pcb.pid + " loaded at " + pcb.base + " (" + bytes.length + " bytes).");
+            _StdOut.putText("Process with pid " + pcb.pid + " loaded at " + pcb.base +
+                " (" + bytes.length + " bytes, priority " + pcb.priority + ").");
         }
         shellRun(args) {
             if (args.length < 1) {
@@ -672,6 +708,24 @@ var TSOS;
             _QuantumCount = 0;
             TSOS.Control.hostUpdatePcbDisplay();
             _StdOut.putText("Quantum set to " + _Quantum + ".");
+        }
+        shellGetSchedule(args) {
+            _StdOut.putText("Current schedule: " + _Schedule);
+        }
+        shellSetSchedule(args) {
+            if (args.length < 1) {
+                _StdOut.putText("Usage: setschedule <rr | fcfs | priority>");
+                return;
+            }
+            var choice = args[0];
+            if (choice !== "rr" && choice !== "fcfs" && choice !== "priority") {
+                _StdOut.putText("Invalid schedule. Use rr, fcfs, or priority.");
+                return;
+            }
+            _Schedule = choice;
+            _QuantumCount = 0;
+            TSOS.Control.hostUpdatePcbDisplay();
+            _StdOut.putText("CPU schedule set to " + _Schedule + ".");
         }
         shellClearmem(args) {
             if (!_MemoryManager.clearMemory()) {

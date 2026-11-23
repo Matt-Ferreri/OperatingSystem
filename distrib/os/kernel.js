@@ -21,6 +21,7 @@ var TSOS;
             _KernelInputQueue = new TSOS.Queue(); // Where device input lands before being processed out somewhere.
             _ReadyQueue = new TSOS.Queue(); // Processes waiting for a turn on the CPU.
             _Scheduler = new TSOS.Scheduler();
+            _Schedule = DEFAULT_SCHEDULE;
             _QuantumCount = 0;
             _CpuCycles = 0;
             // Initialize the console.

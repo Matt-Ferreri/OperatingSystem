@@ -25,7 +25,7 @@ var TSOS;
         turnaroundTime;
         waitTime;
         metricsReported;
-        constructor(pid, base, limit, pc = 0, acc = 0, xReg = 0, yReg = 0, zFlag = 0, ir = 0, state = "Resident", priority = 0, location = "Memory", segment = 0, executeCycles = 0, arrivalCycle = -1, turnaroundTime = 0, waitTime = 0, metricsReported = false) {
+        constructor(pid, base, limit, pc = 0, acc = 0, xReg = 0, yReg = 0, zFlag = 0, ir = 0, state = "Resident", priority = DEFAULT_PRIORITY, location = "Memory", segment = 0, executeCycles = 0, arrivalCycle = -1, turnaroundTime = 0, waitTime = 0, metricsReported = false) {
             this.pid = pid;
             this.base = base;
             this.limit = limit;
