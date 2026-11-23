@@ -66,6 +66,10 @@ module TSOS {
                 _KernelInputQueue.enqueue("up");
             } else if (keyCode == 40) { // down arrow
                 _KernelInputQueue.enqueue("down");
+            } else if (keyCode == 33) { // page up
+                _KernelInputQueue.enqueue("pageup");
+            } else if (keyCode == 34) { // page down
+                _KernelInputQueue.enqueue("pagedown");
             } else if (this.isPunctuationKey(keyCode)) {
                 chr = this.punctuationChar(keyCode, isShifted);
                 _KernelInputQueue.enqueue(chr);

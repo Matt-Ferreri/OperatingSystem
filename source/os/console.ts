@@ -12,6 +12,12 @@ module TSOS {
         public commandHistory: string[] = [];
         public historyIndex: number = 0;
 
+        // Visual line history for scrollback. The last entry is the line being edited.
+        public lines: string[] = [""];
+        // 0 = pinned to the bottom (live view). Higher = looking further up in history.
+        public scrollOffset: number = 0;
+        private static MAX_SCROLLBACK_LINES = 1000;
+
         constructor(public currentFont = _DefaultFontFamily,
                     public currentFontSize = _DefaultFontSize,
                     public currentXPosition = 0,
@@ -25,6 +31,12 @@ module TSOS {
         }
 
         public clearScreen(): void {
+            this.lines = [""];
+            this.scrollOffset = 0;
+            this.clearCanvas();
+        }
+
+        private clearCanvas(): void {
             _DrawingContext.clearRect(0, 0, _Canvas.width, _Canvas.height);
         }
 
@@ -33,12 +45,107 @@ module TSOS {
             this.currentYPosition = this.currentFontSize;
         }
 
+        public lineHeight(): number {
+            return _DefaultFontSize +
+                   _DrawingContext.fontDescent(this.currentFont, this.currentFontSize) +
+                   _FontHeightMargin;
+        }
+
+        public visibleLineCount(): number {
+            // First baseline sits at fontSize; each further row adds one lineHeight.
+            return Math.max(1, Math.floor((_Canvas.height - this.currentFontSize) / this.lineHeight()) + 1);
+        }
+
+        public maxScrollOffset(): number {
+            return Math.max(0, this.lines.length - this.visibleLineCount());
+        }
+
+        // delta > 0 scrolls up into history; delta < 0 scrolls down toward the live prompt.
+        public scroll(delta: number): void {
+            var next = this.scrollOffset + delta;
+            if (next < 0) {
+                next = 0;
+            }
+            var max = this.maxScrollOffset();
+            if (next > max) {
+                next = max;
+            }
+            if (next === this.scrollOffset) {
+                return;
+            }
+            this.scrollOffset = next;
+            this.redraw();
+        }
+
+        public followLive(): void {
+            if (this.scrollOffset !== 0) {
+                this.scrollOffset = 0;
+            }
+        }
+
+        public redraw(): void {
+            this.clearCanvas();
+            var visible = this.visibleLineCount();
+            var end = this.lines.length - this.scrollOffset;
+            var start = Math.max(0, end - visible);
+            var lh = this.lineHeight();
+
+            for (var i = start; i < end; i++) {
+                var row = i - start;
+                var y = this.currentFontSize + row * lh;
+                var text = this.lines[i];
+                if (text !== "") {
+                    _DrawingContext.drawText(this.currentFont, this.currentFontSize, 0, y, text);
+                }
+            }
+
+            // Cursor tracks the live end of the buffer only while following the bottom.
+            if (this.scrollOffset === 0) {
+                var lastIndex = this.lines.length - 1;
+                var lastRow = lastIndex - start;
+                this.currentYPosition = this.currentFontSize + lastRow * lh;
+                this.currentXPosition = _DrawingContext.measureText(
+                    this.currentFont, this.currentFontSize, this.lines[lastIndex]);
+            }
+        }
+
+        private trimScrollback(): void {
+            var overflow = this.lines.length - Console.MAX_SCROLLBACK_LINES;
+            if (overflow > 0) {
+                this.lines = this.lines.slice(overflow);
+                this.scrollOffset = Math.max(0, this.scrollOffset - overflow);
+            }
+        }
+
+        private appendChar(ch: string): void {
+            var charWidth = _DrawingContext.measureText(this.currentFont, this.currentFontSize, ch);
+            var line = this.lines[this.lines.length - 1];
+            var lineWidth = _DrawingContext.measureText(this.currentFont, this.currentFontSize, line);
+            if (lineWidth + charWidth > _Canvas.width) {
+                this.lines[this.lines.length] = "";
+                this.trimScrollback();
+            }
+            this.lines[this.lines.length - 1] += ch;
+        }
+
+        private removeLastVisualChar(): void {
+            var last = this.lines[this.lines.length - 1];
+            if (last.length > 0) {
+                this.lines[this.lines.length - 1] = last.substring(0, last.length - 1);
+            } else if (this.lines.length > 1) {
+                this.lines.pop();
+                last = this.lines[this.lines.length - 1];
+                this.lines[this.lines.length - 1] = last.substring(0, last.length - 1);
+            }
+        }
+
         public handleInput(): void {
             while (_KernelInputQueue.getSize() > 0) {
                 // Get the next character from the kernel input queue.
                 var chr = _KernelInputQueue.dequeue();
                 // Check to see if it's "special" (enter or ctrl-c) or "normal" (anything else that the keyboard device driver gave us).
                 if (chr === String.fromCharCode(13)) { // the Enter key
+                    this.followLive();
                     // Remember non-empty commands for up/down recall.
                     if (this.buffer !== "") {
                         this.commandHistory[this.commandHistory.length] = this.buffer;
@@ -50,16 +157,26 @@ module TSOS {
                     // ... and reset our buffer.
                     this.buffer = "";
                 } else if (chr === String.fromCharCode(8)) { // the Backspace key
+                    this.followLive();
                     this.handleBackspace();
                 } else if (chr === String.fromCharCode(9)) { // the Tab key
+                    this.followLive();
                     this.handleTabComplete();
                 } else if (chr === "up") {
+                    this.followLive();
                     this.recallHistory(-1);
                 } else if (chr === "down") {
+                    this.followLive();
                     this.recallHistory(1);
+                } else if (chr === "pageup") {
+                    this.scroll(this.visibleLineCount() - 1);
+                } else if (chr === "pagedown") {
+                    this.scroll(-(this.visibleLineCount() - 1));
                 } else if (chr === String.fromCharCode(3)) { // Ctrl+C
+                    this.followLive();
                     this.handleBreak();
                 } else {
+                    this.followLive();
                     // This is a "normal" character, so ...
                     // ... draw it on the screen...
                     this.putText(chr);
@@ -88,51 +205,11 @@ module TSOS {
         public handleBackspace(): void {
             // Only erase user-typed input for the current command line.
             if (this.buffer.length > 0) {
-                var lastChar = this.buffer.charAt(this.buffer.length - 1);
-                var charWidth = _DrawingContext.measureText(this.currentFont, this.currentFontSize, lastChar);
-                var clearHeight = this.currentFontSize +
-                                  _DrawingContext.fontDescent(this.currentFont, this.currentFontSize) +
-                                  _FontHeightMargin;
-                var lineHeight = clearHeight;
-
-                // If this char started a wrapped line, erase it then move back up.
-                if (this.currentXPosition - charWidth <= 0) {
-                    _DrawingContext.clearRect(
-                        0,
-                        this.currentYPosition - this.currentFontSize,
-                        charWidth + 1,
-                        clearHeight
-                    );
-                    this.currentYPosition -= lineHeight;
-                    this.buffer = this.buffer.substring(0, this.buffer.length - 1);
-                    this.currentXPosition = this.cursorXAfterBuffer(this.buffer);
-                } else {
-                    this.currentXPosition = this.currentXPosition - charWidth;
-                    _DrawingContext.clearRect(
-                        this.currentXPosition,
-                        this.currentYPosition - this.currentFontSize,
-                        charWidth + 1,
-                        clearHeight
-                    );
-                    this.buffer = this.buffer.substring(0, this.buffer.length - 1);
-                }
+                this.buffer = this.buffer.substring(0, this.buffer.length - 1);
+                this.removeLastVisualChar();
+                this.followLive();
+                this.redraw();
             }
-        }
-
-        // Simulate prompt + buffer with wrapping to find the cursor X.
-        private cursorXAfterBuffer(buf: string): number {
-            var x = 0;
-            if (_OsShell && _OsShell.promptStr) {
-                x = _DrawingContext.measureText(this.currentFont, this.currentFontSize, _OsShell.promptStr);
-            }
-            for (var i = 0; i < buf.length; i++) {
-                var w = _DrawingContext.measureText(this.currentFont, this.currentFontSize, buf.charAt(i));
-                if (x + w > _Canvas.width) {
-                    x = 0;
-                }
-                x += w;
-            }
-            return x;
         }
 
         public clearCurrentInput(): void {
@@ -251,40 +328,19 @@ module TSOS {
                 decided to write one function and use the term "text" to connote string or char.
             */
             if (text !== "") {
-                // Draw character-by-character so long strings wrap mid-text.
+                this.followLive();
                 for (var i = 0; i < text.length; i++) {
-                    var ch = text.charAt(i);
-                    var charWidth = _DrawingContext.measureText(this.currentFont, this.currentFontSize, ch);
-                    if (this.currentXPosition + charWidth > _Canvas.width) {
-                        this.advanceLine();
-                    }
-                    _DrawingContext.drawText(this.currentFont, this.currentFontSize,
-                                             this.currentXPosition, this.currentYPosition, ch);
-                    this.currentXPosition = this.currentXPosition + charWidth;
+                    this.appendChar(text.charAt(i));
                 }
+                this.redraw();
             }
          }
 
         public advanceLine(): void {
-            this.currentXPosition = 0;
-            /*
-             * Font size measures from the baseline to the highest point in the font.
-             * Font descent measures from the baseline to the lowest point in the font.
-             * Font height margin is extra spacing between the lines.
-             */
-            var lineHeight = _DefaultFontSize +
-                             _DrawingContext.fontDescent(this.currentFont, this.currentFontSize) +
-                             _FontHeightMargin;
-            this.currentYPosition += lineHeight;
-
-            // Auto-follow: when the cursor would leave the canvas, shift content up.
-            if (this.currentYPosition > _Canvas.height) {
-                var imageData = _DrawingContext.getImageData(
-                    0, lineHeight, _Canvas.width, _Canvas.height - lineHeight);
-                this.clearScreen();
-                _DrawingContext.putImageData(imageData, 0, 0);
-                this.currentYPosition -= lineHeight;
-            }
+            this.followLive();
+            this.lines[this.lines.length] = "";
+            this.trimScrollback();
+            this.redraw();
         }
     }
  }

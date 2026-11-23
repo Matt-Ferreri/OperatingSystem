@@ -41,10 +41,19 @@ module TSOS {
             // and call the simulation processor, which will in turn call the
             // OS interrupt handler.
             document.addEventListener("keydown", Devices.hostOnKeypress, false);
+            // Mouse wheel over the console canvas scrolls the CLI scrollback.
+            var display = document.getElementById("display");
+            if (display) {
+                display.addEventListener("wheel", Devices.hostOnMouseWheel, { passive: false });
+            }
         }
 
         public static hostDisableKeyboardInterrupt(): void {
             document.removeEventListener("keydown", Devices.hostOnKeypress, false);
+            var display = document.getElementById("display");
+            if (display) {
+                display.removeEventListener("wheel", Devices.hostOnMouseWheel);
+            }
         }
 
         public static hostOnKeypress(event): void {
@@ -57,6 +66,16 @@ module TSOS {
                 // Enqueue this interrupt on the kernel interrupt queue so that it gets to the Interrupt handler.
                 _KernelInterruptQueue.enqueue(new Interrupt(KEYBOARD_IRQ, params));
             }
+        }
+
+        public static hostOnMouseWheel(event): void {
+            if (!_Console) {
+                return;
+            }
+            event.preventDefault();
+            // Wheel up (negative deltaY) reveals older lines; wheel down returns toward the prompt.
+            var steps = event.deltaY < 0 ? 3 : -3;
+            _Console.scroll(steps);
         }
     }
 }
