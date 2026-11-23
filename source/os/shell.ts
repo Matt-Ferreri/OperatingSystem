@@ -212,6 +212,30 @@ module TSOS {
                                   "<existing filename> <new filename> - Makes both names point to the same file data.");
             this.commandList[this.commandList.length] = sc;
 
+            // recover [filename] - undelete soft-deleted files
+            sc = new ShellCommand(this.shellRecover,
+                                  "recover",
+                                  "[filename] - Recovers deleted file(s) whose data has not been overwritten.");
+            this.commandList[this.commandList.length] = sc;
+
+            // chkdsk - reclaim orphaned in-use data blocks
+            sc = new ShellCommand(this.shellChkdsk,
+                                  "chkdsk",
+                                  "- Reclaims data blocks that are in use but not indexed by any directory entry.");
+            this.commandList[this.commandList.length] = sc;
+
+            // fsck - same as chkdsk
+            sc = new ShellCommand(this.shellChkdsk,
+                                  "fsck",
+                                  "- Same as chkdsk: reclaims unindexed in-use data blocks.");
+            this.commandList[this.commandList.length] = sc;
+
+            // defrag - pack file data into contiguous blocks
+            sc = new ShellCommand(this.shellDefrag,
+                                  "defrag",
+                                  "- Defragments data blocks so each file occupies contiguous TSBs.");
+            this.commandList[this.commandList.length] = sc;
+
             // alias <command1> <command2> - invoke a command under another name
             sc = new ShellCommand(this.shellAlias,
                                   "alias",
@@ -416,9 +440,11 @@ module TSOS {
                         _StdOut.putText("Writes quoted data to a file. Usage: write <filename> \"data\".");
                         break;
                     case "delete":
-                        _StdOut.putText("Deletes a file name from disk. Usage: delete <filename>.");
+                        _StdOut.putText("Soft-deletes a file name from disk. Usage: delete <filename>.");
                         _StdOut.advanceLine();
                         _StdOut.putText("If other links still point to the data, only the name is removed.");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("Otherwise data is marked free but kept so recover can undelete it.");
                         break;
                     case "copy":
                         _StdOut.putText("Copies a file. Usage: copy <existing filename> <new filename>.");
@@ -437,6 +463,22 @@ module TSOS {
                         _StdOut.putText("Usage: link <existing filename> <new filename>.");
                         _StdOut.advanceLine();
                         _StdOut.putText("delete removes a name; data stays until the last link is deleted.");
+                        break;
+                    case "recover":
+                        _StdOut.putText("Recovers soft-deleted files whose data was not overwritten.");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("Usage: recover [filename]. Omitting the name recovers all possible.");
+                        break;
+                    case "chkdsk":
+                    case "fsck":
+                        _StdOut.putText("Reclaims in-use data blocks that no directory entry indexes.");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("Usage: chkdsk | fsck.");
+                        break;
+                    case "defrag":
+                        _StdOut.putText("Defragments disk data so each file uses contiguous blocks.");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("Usage: defrag.");
                         break;
                     case "alias":
                         _StdOut.putText("Aliases a shell command under another name.");
@@ -932,6 +974,71 @@ module TSOS {
             } else {
                 _StdOut.putText("Linked: " + args[0] + " <-> " + args[1]);
             }
+        }
+
+        public shellRecover(args: string[]) {
+            if (!_krnDiskDriver) {
+                _StdOut.putText("Disk driver is not loaded.");
+                return;
+            }
+
+            var filename = (args.length > 0) ? args[0] : undefined;
+            var result = _krnDiskDriver.recover(filename);
+            if (result.error) {
+                _StdOut.putText(result.error);
+                return;
+            }
+
+            var recovered = result.recovered || [];
+            var skipped = result.skipped || [];
+            if (recovered.length === 0) {
+                _StdOut.putText(filename
+                    ? "Could not recover " + filename + " (data overwritten or name in use)."
+                    : "No recoverable deleted files.");
+            } else {
+                _StdOut.putText("Recovered: " + recovered.join(", "));
+            }
+            if (skipped.length > 0) {
+                _StdOut.advanceLine();
+                _StdOut.putText("Skipped (not recoverable): " + skipped.join(", "));
+            }
+        }
+
+        public shellChkdsk(args: string[]) {
+            if (!_krnDiskDriver) {
+                _StdOut.putText("Disk driver is not loaded.");
+                return;
+            }
+
+            var result = _krnDiskDriver.reclaim();
+            if (result.error) {
+                _StdOut.putText(result.error);
+                return;
+            }
+
+            var n = result.reclaimed || 0;
+            if (n === 0) {
+                _StdOut.putText("Disk check complete. No orphaned data blocks.");
+            } else {
+                _StdOut.putText("Disk check complete. Reclaimed " + n + " orphaned data block(s).");
+            }
+        }
+
+        public shellDefrag(args: string[]) {
+            if (!_krnDiskDriver) {
+                _StdOut.putText("Disk driver is not loaded.");
+                return;
+            }
+
+            var result = _krnDiskDriver.defrag();
+            if (result.error) {
+                _StdOut.putText(result.error);
+                return;
+            }
+
+            _StdOut.putText("Defrag complete. " +
+                (result.files || 0) + " file(s) packed into " +
+                (result.blocks || 0) + " contiguous data block(s).");
         }
 
         public shellAlias(args: string[]) {

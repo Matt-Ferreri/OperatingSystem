@@ -251,6 +251,138 @@ module TSOS {
             this.writeBlock(track, sector, block, this.emptyBlock());
         }
 
+        // Clear only the in-use flag so next-TSB links and payload stay for recover.
+        private softFreeBlock(track: number, sector: number, block: number): void {
+            var bytes = this.readBlock(track, sector, block);
+            bytes[0] = 0x00;
+            this.writeBlock(track, sector, block, bytes);
+        }
+
+        private tsbKey(tsb: number[]): string {
+            return tsb[0] + ":" + tsb[1] + ":" + tsb[2];
+        }
+
+        private isValidDataTSB(tsb: number[]): boolean {
+            return tsb &&
+                tsb[0] >= 1 && tsb[0] < DISK_TRACKS &&
+                tsb[1] >= 0 && tsb[1] < DISK_SECTORS &&
+                tsb[2] >= 0 && tsb[2] < DISK_BLOCKS;
+        }
+
+        // Next TSB in track/sector/block order (data tracks only).
+        private nextLinearDataTSB(tsb: number[]): number[] | null {
+            var t = tsb[0];
+            var s = tsb[1];
+            var b = tsb[2] + 1;
+            if (b >= DISK_BLOCKS) {
+                b = 0;
+                s++;
+            }
+            if (s >= DISK_SECTORS) {
+                s = 0;
+                t++;
+            }
+            if (t >= DISK_TRACKS) {
+                return null;
+            }
+            return [t, s, b];
+        }
+
+        // True if any active directory chain includes this data block.
+        private isDataBlockReferenced(track: number, sector: number, block: number): boolean {
+            for (var s = 0; s < DISK_SECTORS; s++) {
+                for (var b = 0; b < DISK_BLOCKS; b++) {
+                    if (!this.isDirectoryTSB(0, s, b)) {
+                        continue;
+                    }
+                    var bytes = this.readBlock(0, s, b);
+                    if (!this.isInUse(bytes)) {
+                        continue;
+                    }
+                    var chain = this.collectDataChain([bytes[1], bytes[2], bytes[3]]);
+                    for (var i = 0; i < chain.length; i++) {
+                        if (chain[i][0] === track && chain[i][1] === sector && chain[i][2] === block) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        // Soft-deleted directory slots that still hold a recoverable name + first TSB.
+        private findDeletedDirectoryEntries(filename?: string): number[][] {
+            var entries: number[][] = [];
+            for (var s = 0; s < DISK_SECTORS; s++) {
+                for (var b = 0; b < DISK_BLOCKS; b++) {
+                    if (!this.isDirectoryTSB(0, s, b)) {
+                        continue;
+                    }
+                    var bytes = this.readBlock(0, s, b);
+                    if (this.isInUse(bytes)) {
+                        continue;
+                    }
+                    var name = this.readFilename(bytes);
+                    if (!name || name.length === 0) {
+                        continue;
+                    }
+                    if (filename && name !== filename) {
+                        continue;
+                    }
+                    var first = this.getNextTSB(bytes);
+                    if (!first || !this.isValidDataTSB(first)) {
+                        continue;
+                    }
+                    // [dirT, dirS, dirB, dataT, dataS, dataB]
+                    entries[entries.length] = [0, s, b, first[0], first[1], first[2]];
+                }
+            }
+            return entries;
+        }
+
+        // Can this soft-deleted entry's data chain be brought back?
+        private canRecoverEntry(entry: number[]): boolean {
+            if (this.fileExists(this.readFilename(this.readBlock(entry[0], entry[1], entry[2])))) {
+                return false;
+            }
+            var first = [entry[3], entry[4], entry[5]];
+            if (!this.isValidDataTSB(first)) {
+                return false;
+            }
+
+            // Another live name still owns this chain: just restore the directory bit.
+            if (this.countLinksToData(first[0], first[1], first[2]) > 0) {
+                return true;
+            }
+
+            // Walk the saved next-TSB chain. Recoverable when:
+            //  - every block is still free (normal soft-delete), or
+            //  - every block is in-use but unreferenced (orphaned chain).
+            // Mixed / partially reused chains are not recoverable.
+            var chain = this.collectDataChain(first);
+            if (chain.length === 0) {
+                return false;
+            }
+            var freeCount = 0;
+            var orphanInUseCount = 0;
+            for (var i = 0; i < chain.length; i++) {
+                var tsb = chain[i];
+                if (!this.isValidDataTSB(tsb)) {
+                    return false;
+                }
+                var bytes = this.readBlock(tsb[0], tsb[1], tsb[2]);
+                if (this.isInUse(bytes)) {
+                    if (this.isDataBlockReferenced(tsb[0], tsb[1], tsb[2])) {
+                        return false;
+                    }
+                    orphanInUseCount++;
+                } else {
+                    freeCount++;
+                }
+            }
+            return freeCount === chain.length || orphanInUseCount === chain.length;
+        }
+
         private countFreeDataBlocks(): number {
             var count = 0;
             for (var t = 1; t < DISK_TRACKS; t++) {
@@ -512,8 +644,9 @@ module TSOS {
             return null;
         }
 
-        // delete <filename>: remove a directory name.
-        // Data blocks are freed only when this was the last link to them.
+        // delete <filename>: soft-delete a directory name so recover can undelete it.
+        // Data blocks are soft-freed only when this was the last link to them
+        // (in-use cleared; next-TSB links and payload kept until overwritten).
         // Returns null on success, or an error message string.
         public delete(filename: string): string | null {
             if (!this.isFormatted()) {
@@ -528,16 +661,207 @@ module TSOS {
                 return "File not found.";
             }
 
-            // Free data only if no other name still points at this chain.
+            // Soft-free data only if no other name still points at this chain.
             if (this.countLinksToData(entry[3], entry[4], entry[5]) <= 1) {
                 var chain = this.collectDataChain([entry[3], entry[4], entry[5]]);
                 for (var i = 0; i < chain.length; i++) {
-                    this.freeBlock(chain[i][0], chain[i][1], chain[i][2]);
+                    this.softFreeBlock(chain[i][0], chain[i][1], chain[i][2]);
                 }
             }
-            this.writeBlock(entry[0], entry[1], entry[2], this.emptyBlock());
+
+            // Soft-delete the directory slot: clear in-use, keep name + first TSB.
+            var dirBlock = this.readBlock(entry[0], entry[1], entry[2]);
+            dirBlock[0] = 0x00;
+            this.writeBlock(entry[0], entry[1], entry[2], dirBlock);
             Control.hostUpdateDiskDisplay();
             return null;
+        }
+
+        // recover [filename]: undelete soft-deleted directory entries whose data
+        // has not been overwritten. Omitting the name recovers every recoverable file.
+        // Returns { error } or { recovered: string[], skipped: string[] }.
+        public recover(filename?: string): { error?: string; recovered?: string[]; skipped?: string[] } {
+            if (!this.isFormatted()) {
+                return { error: "Disk is not formatted." };
+            }
+            if (filename !== undefined && filename !== null && filename.length === 0) {
+                return { error: "Filename required." };
+            }
+
+            var candidates = this.findDeletedDirectoryEntries(filename);
+            if (filename && candidates.length === 0) {
+                return { error: "Deleted file not found." };
+            }
+
+            var recovered: string[] = [];
+            var skipped: string[] = [];
+            for (var i = 0; i < candidates.length; i++) {
+                var entry = candidates[i];
+                var dirBytes = this.readBlock(entry[0], entry[1], entry[2]);
+                var name = this.readFilename(dirBytes);
+                if (!this.canRecoverEntry(entry)) {
+                    skipped[skipped.length] = name;
+                    continue;
+                }
+
+                var first = [entry[3], entry[4], entry[5]];
+                // Reactivate data chain when this was the last link (blocks still free).
+                if (this.countLinksToData(first[0], first[1], first[2]) === 0) {
+                    var chain = this.collectDataChain(first);
+                    for (var j = 0; j < chain.length; j++) {
+                        var tsb = chain[j];
+                        var data = this.readBlock(tsb[0], tsb[1], tsb[2]);
+                        data[0] = 0x01;
+                        this.writeBlock(tsb[0], tsb[1], tsb[2], data);
+                    }
+                }
+
+                dirBytes[0] = 0x01;
+                this.writeBlock(entry[0], entry[1], entry[2], dirBytes);
+                recovered[recovered.length] = name;
+            }
+
+            Control.hostUpdateDiskDisplay();
+            return { recovered: recovered, skipped: skipped };
+        }
+
+        // reclaim / chkdsk / fsck: free in-use data blocks that no active directory
+        // entry indexes. Soft-deleted free blocks are left alone for recover.
+        // Returns { error } or { reclaimed: number }.
+        public reclaim(): { error?: string; reclaimed?: number } {
+            if (!this.isFormatted()) {
+                return { error: "Disk is not formatted." };
+            }
+
+            var reclaimed = 0;
+            for (var t = 1; t < DISK_TRACKS; t++) {
+                for (var s = 0; s < DISK_SECTORS; s++) {
+                    for (var b = 0; b < DISK_BLOCKS; b++) {
+                        var bytes = this.readBlock(t, s, b);
+                        if (!this.isInUse(bytes)) {
+                            continue;
+                        }
+                        if (!this.isDataBlockReferenced(t, s, b)) {
+                            this.freeBlock(t, s, b);
+                            reclaimed++;
+                        }
+                    }
+                }
+            }
+
+            Control.hostUpdateDiskDisplay();
+            return { reclaimed: reclaimed };
+        }
+
+        // defrag: pack every live file's data into contiguous linear TSBs.
+        // Hard-linked names that share a chain are moved once and all updated.
+        // Returns { error } or { files: number, blocks: number }.
+        public defrag(): { error?: string; files?: number; blocks?: number } {
+            if (!this.isFormatted()) {
+                return { error: "Disk is not formatted." };
+            }
+
+            // Unique chains keyed by first data TSB; dirs[] lists every hard link.
+            var chains: {
+                key: string;
+                first: number[];
+                content: string;
+                dirs: number[][];
+            }[] = [];
+            var seen: { [key: string]: number } = {};
+
+            for (var s = 0; s < DISK_SECTORS; s++) {
+                for (var b = 0; b < DISK_BLOCKS; b++) {
+                    if (!this.isDirectoryTSB(0, s, b)) {
+                        continue;
+                    }
+                    var bytes = this.readBlock(0, s, b);
+                    if (!this.isInUse(bytes)) {
+                        continue;
+                    }
+                    var first = [bytes[1], bytes[2], bytes[3]];
+                    if (!this.isValidDataTSB(first)) {
+                        continue;
+                    }
+                    var key = this.tsbKey(first);
+                    if (seen[key] !== undefined) {
+                        chains[seen[key]].dirs[chains[seen[key]].dirs.length] = [0, s, b];
+                        continue;
+                    }
+                    var readResult = this.read(this.readFilename(bytes));
+                    var content = readResult.data || "";
+                    seen[key] = chains.length;
+                    chains[chains.length] = {
+                        key: key,
+                        first: first,
+                        content: content,
+                        dirs: [[0, s, b]]
+                    };
+                }
+            }
+
+            // Wipe all data blocks, then rewrite files contiguously from 1:0:0.
+            for (var t = 1; t < DISK_TRACKS; t++) {
+                for (var s2 = 0; s2 < DISK_SECTORS; s2++) {
+                    for (var b2 = 0; b2 < DISK_BLOCKS; b2++) {
+                        this.freeBlock(t, s2, b2);
+                    }
+                }
+            }
+
+            var cursor: number[] | null = [1, 0, 0];
+            var totalBlocks = 0;
+            for (var i = 0; i < chains.length; i++) {
+                var file = chains[i];
+                var blocksNeeded = Math.max(1, Math.ceil(file.content.length / DISK_DATA_SIZE));
+                if (file.content.length === 0) {
+                    blocksNeeded = 1;
+                }
+
+                var newChain: number[][] = [];
+                for (var n = 0; n < blocksNeeded; n++) {
+                    if (!cursor) {
+                        return { error: "Disk is full during defrag." };
+                    }
+                    newChain[newChain.length] = [cursor[0], cursor[1], cursor[2]];
+                    cursor = this.nextLinearDataTSB(cursor);
+                }
+
+                var offset = 0;
+                for (var c = 0; c < newChain.length; c++) {
+                    var tsb = newChain[c];
+                    var block = this.emptyBlock();
+                    block[0] = 0x01;
+                    if (c < newChain.length - 1) {
+                        this.setNextTSB(block, newChain[c + 1]);
+                    } else {
+                        this.setNextTSB(block, null);
+                    }
+                    for (var j = 0; j < DISK_DATA_SIZE; j++) {
+                        if (offset < file.content.length) {
+                            block[DISK_HEADER_SIZE + j] = file.content.charCodeAt(offset) & 0xFF;
+                            offset++;
+                        } else {
+                            block[DISK_HEADER_SIZE + j] = 0x00;
+                        }
+                    }
+                    this.writeBlock(tsb[0], tsb[1], tsb[2], block);
+                }
+
+                var newFirst = newChain[0];
+                for (var d = 0; d < file.dirs.length; d++) {
+                    var dirTSB = file.dirs[d];
+                    var dirBlock = this.readBlock(dirTSB[0], dirTSB[1], dirTSB[2]);
+                    dirBlock[1] = newFirst[0];
+                    dirBlock[2] = newFirst[1];
+                    dirBlock[3] = newFirst[2];
+                    this.writeBlock(dirTSB[0], dirTSB[1], dirTSB[2], dirBlock);
+                }
+                totalBlocks += newChain.length;
+            }
+
+            Control.hostUpdateDiskDisplay();
+            return { files: chains.length, blocks: totalBlocks };
         }
 
         // copy <existing> <new>: duplicate a file under a new name.
