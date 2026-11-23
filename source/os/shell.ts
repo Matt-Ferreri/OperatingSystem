@@ -206,6 +206,18 @@ module TSOS {
                                   "[-a] - Lists files on disk. -a shows hidden files with size and create date.");
             this.commandList[this.commandList.length] = sc;
 
+            // link <existing> <new> - hard-link: both names share the same file data
+            sc = new ShellCommand(this.shellLink,
+                                  "link",
+                                  "<existing filename> <new filename> - Makes both names point to the same file data.");
+            this.commandList[this.commandList.length] = sc;
+
+            // alias <command1> <command2> - invoke a command under another name
+            sc = new ShellCommand(this.shellAlias,
+                                  "alias",
+                                  "<command1> <command2> - Aliases command1 as command2 so either name works.");
+            this.commandList[this.commandList.length] = sc;
+
             // Display the initial prompt.
             this.putPrompt();
         }
@@ -404,7 +416,9 @@ module TSOS {
                         _StdOut.putText("Writes quoted data to a file. Usage: write <filename> \"data\".");
                         break;
                     case "delete":
-                        _StdOut.putText("Deletes a file from disk. Usage: delete <filename>.");
+                        _StdOut.putText("Deletes a file name from disk. Usage: delete <filename>.");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("If other links still point to the data, only the name is removed.");
                         break;
                     case "copy":
                         _StdOut.putText("Copies a file. Usage: copy <existing filename> <new filename>.");
@@ -416,6 +430,18 @@ module TSOS {
                         _StdOut.putText("Lists files on disk. Names starting with '.' are hidden.");
                         _StdOut.advanceLine();
                         _StdOut.putText("Usage: ls [-a]. -a shows hidden files plus size and create date.");
+                        break;
+                    case "link":
+                        _StdOut.putText("Creates a hard link so two names share the same file data.");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("Usage: link <existing filename> <new filename>.");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("delete removes a name; data stays until the last link is deleted.");
+                        break;
+                    case "alias":
+                        _StdOut.putText("Aliases a shell command under another name.");
+                        _StdOut.advanceLine();
+                        _StdOut.putText("Usage: alias <command1> <command2>.");
                         break;
                     // TODO: Make descriptive MANual page entries for the the rest of the shell commands here.
                     default:
@@ -888,6 +914,59 @@ module TSOS {
                     _StdOut.putText(files[i].name);
                 }
             }
+        }
+
+        public shellLink(args: string[]) {
+            if (!_krnDiskDriver) {
+                _StdOut.putText("Disk driver is not loaded.");
+                return;
+            }
+            if (args.length < 2) {
+                _StdOut.putText("Usage: link <existing filename> <new filename>");
+                return;
+            }
+
+            var err = _krnDiskDriver.link(args[0], args[1]);
+            if (err) {
+                _StdOut.putText(err);
+            } else {
+                _StdOut.putText("Linked: " + args[0] + " <-> " + args[1]);
+            }
+        }
+
+        public shellAlias(args: string[]) {
+            if (args.length < 2) {
+                _StdOut.putText("Usage: alias <command1> <command2>");
+                return;
+            }
+
+            var command1 = args[0];
+            var command2 = args[1];
+            if (command1 === command2) {
+                _StdOut.putText("Alias names must differ.");
+                return;
+            }
+
+            var source = undefined;
+            for (var i = 0; i < this.commandList.length; i++) {
+                if (this.commandList[i].command === command1) {
+                    source = this.commandList[i];
+                }
+                if (this.commandList[i].command === command2) {
+                    _StdOut.putText("Command already exists: " + command2);
+                    return;
+                }
+            }
+
+            if (!source) {
+                _StdOut.putText("Unknown command: " + command1);
+                return;
+            }
+
+            // Same function / description under the new name so either works.
+            var sc = new ShellCommand(source.func, command2, source.description);
+            this.commandList[this.commandList.length] = sc;
+            _StdOut.putText("Aliased: " + command1 + " -> " + command2);
         }
     }
 }

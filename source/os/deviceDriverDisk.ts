@@ -449,7 +449,71 @@ module TSOS {
             return null;
         }
 
-        // delete <filename>: delete a file from the disk.
+        // How many directory entries point at the same first data TSB?
+        private countLinksToData(dataTrack: number, dataSector: number, dataBlock: number): number {
+            var count = 0;
+            for (var s = 0; s < DISK_SECTORS; s++) {
+                for (var b = 0; b < DISK_BLOCKS; b++) {
+                    if (!this.isDirectoryTSB(0, s, b)) {
+                        continue;
+                    }
+                    var bytes = this.readBlock(0, s, b);
+                    if (this.isInUse(bytes) &&
+                        bytes[1] === dataTrack &&
+                        bytes[2] === dataSector &&
+                        bytes[3] === dataBlock) {
+                        count++;
+                    }
+                }
+            }
+            return count;
+        }
+
+        // link <existing> <new>: second directory name for the same file data.
+        // Returns null on success, or an error message string.
+        public link(existingFilename: string, newFilename: string): string | null {
+            if (!this.isFormatted()) {
+                return "Disk is not formatted.";
+            }
+            if (!existingFilename || existingFilename.length === 0 ||
+                !newFilename || newFilename.length === 0) {
+                return "Usage: link <existing filename> <new filename>";
+            }
+            if (newFilename.length > DeviceDriverDisk.MAX_FILENAME_LENGTH) {
+                return "Filename too long (max " + DeviceDriverDisk.MAX_FILENAME_LENGTH + " characters).";
+            }
+            if (existingFilename === newFilename) {
+                return "Source and link filenames must differ.";
+            }
+
+            var entry = this.findDirectoryEntry(existingFilename);
+            if (!entry) {
+                return "File not found.";
+            }
+            if (this.fileExists(newFilename)) {
+                return "File already exists.";
+            }
+
+            var dirTSB = this.findFreeDirectoryBlock();
+            if (!dirTSB) {
+                return "Directory is full.";
+            }
+
+            // New directory entry points at the same first data block (hard link).
+            var dirBlock = this.emptyBlock();
+            dirBlock[0] = 0x01;
+            dirBlock[1] = entry[3];
+            dirBlock[2] = entry[4];
+            dirBlock[3] = entry[5];
+            this.writeFilename(dirBlock, newFilename, Date.now());
+            this.writeBlock(dirTSB[0], dirTSB[1], dirTSB[2], dirBlock);
+
+            Control.hostUpdateDiskDisplay();
+            return null;
+        }
+
+        // delete <filename>: remove a directory name.
+        // Data blocks are freed only when this was the last link to them.
         // Returns null on success, or an error message string.
         public delete(filename: string): string | null {
             if (!this.isFormatted()) {
@@ -464,10 +528,12 @@ module TSOS {
                 return "File not found.";
             }
 
-            // Free every data block in the chain, then the directory entry.
-            var chain = this.collectDataChain([entry[3], entry[4], entry[5]]);
-            for (var i = 0; i < chain.length; i++) {
-                this.freeBlock(chain[i][0], chain[i][1], chain[i][2]);
+            // Free data only if no other name still points at this chain.
+            if (this.countLinksToData(entry[3], entry[4], entry[5]) <= 1) {
+                var chain = this.collectDataChain([entry[3], entry[4], entry[5]]);
+                for (var i = 0; i < chain.length; i++) {
+                    this.freeBlock(chain[i][0], chain[i][1], chain[i][2]);
+                }
             }
             this.writeBlock(entry[0], entry[1], entry[2], this.emptyBlock());
             Control.hostUpdateDiskDisplay();
