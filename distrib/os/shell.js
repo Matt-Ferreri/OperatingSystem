@@ -94,6 +94,15 @@ var TSOS;
             // create <filename> - create an empty file on disk
             sc = new TSOS.ShellCommand(this.shellCreate, "create", "<filename> - Creates a file on disk.");
             this.commandList[this.commandList.length] = sc;
+            // read <filename> - display file contents
+            sc = new TSOS.ShellCommand(this.shellRead, "read", "<filename> - Reads and displays the contents of a file.");
+            this.commandList[this.commandList.length] = sc;
+            // write <filename> "data" - write quoted data to a file
+            sc = new TSOS.ShellCommand(this.shellWrite, "write", "<filename> \"data\" - Writes the quoted data to a file.");
+            this.commandList[this.commandList.length] = sc;
+            // delete <filename> - delete a file
+            sc = new TSOS.ShellCommand(this.shellDelete, "delete", "<filename> - Deletes a file.");
+            this.commandList[this.commandList.length] = sc;
             // Display the initial prompt.
             this.putPrompt();
         }
@@ -164,21 +173,47 @@ var TSOS;
             var retVal = new TSOS.UserCommand();
             // 1. Remove leading and trailing spaces.
             buffer = TSOS.Utils.trim(buffer);
-            // 2. Lower-case it.
-            buffer = buffer.toLowerCase();
-            // 3. Separate on spaces so we can determine the command and command-line args, if any.
-            var tempList = buffer.split(" ");
-            // 4. Take the first (zeroth) element and use that as the command.
-            var cmd = tempList.shift(); // Yes, you can do that to an array in JavaScript. See the Queue class.
-            // 4.1 Remove any left-over spaces.
-            cmd = TSOS.Utils.trim(cmd);
-            // 4.2 Record it in the return value.
+            // 2. Split off the command (lower-cased); keep the rest for arg parsing
+            //    so quoted write data can preserve case and spaces.
+            var firstSpace = buffer.indexOf(" ");
+            var cmd;
+            var rest;
+            if (firstSpace < 0) {
+                cmd = buffer.toLowerCase();
+                rest = "";
+            }
+            else {
+                cmd = TSOS.Utils.trim(buffer.substring(0, firstSpace)).toLowerCase();
+                rest = TSOS.Utils.trim(buffer.substring(firstSpace + 1));
+            }
             retVal.command = cmd;
-            // 5. Now create the args array from what's left.
-            for (var i in tempList) {
-                var arg = TSOS.Utils.trim(tempList[i]);
-                if (arg != "") {
-                    retVal.args[retVal.args.length] = tempList[i];
+            // 3. Parse args: double-quoted strings stay one arg (original case);
+            //    everything else is space-split and lower-cased.
+            var i = 0;
+            while (i < rest.length) {
+                while (i < rest.length && rest.charAt(i) === " ") {
+                    i++;
+                }
+                if (i >= rest.length) {
+                    break;
+                }
+                if (rest.charAt(i) === "\"") {
+                    i++; // skip opening quote
+                    var qStart = i;
+                    while (i < rest.length && rest.charAt(i) !== "\"") {
+                        i++;
+                    }
+                    retVal.args[retVal.args.length] = rest.substring(qStart, i);
+                    if (i < rest.length) {
+                        i++; // skip closing quote
+                    }
+                }
+                else {
+                    var aStart = i;
+                    while (i < rest.length && rest.charAt(i) !== " ") {
+                        i++;
+                    }
+                    retVal.args[retVal.args.length] = rest.substring(aStart, i).toLowerCase();
                 }
             }
             return retVal;
@@ -249,6 +284,15 @@ var TSOS;
                         break;
                     case "create":
                         _StdOut.putText("Creates a file on disk. Usage: create <filename>.");
+                        break;
+                    case "read":
+                        _StdOut.putText("Reads and displays a file. Usage: read <filename>.");
+                        break;
+                    case "write":
+                        _StdOut.putText("Writes quoted data to a file. Usage: write <filename> \"data\".");
+                        break;
+                    case "delete":
+                        _StdOut.putText("Deletes a file from disk. Usage: delete <filename>.");
                         break;
                     // TODO: Make descriptive MANual page entries for the the rest of the shell commands here.
                     default:
@@ -558,6 +602,57 @@ var TSOS;
             }
             else {
                 _StdOut.putText("File created: " + args[0]);
+            }
+        }
+        shellRead(args) {
+            if (!_krnDiskDriver) {
+                _StdOut.putText("Disk driver is not loaded.");
+                return;
+            }
+            if (args.length < 1) {
+                _StdOut.putText("Usage: read <filename>");
+                return;
+            }
+            var result = _krnDiskDriver.read(args[0]);
+            if (result.error) {
+                _StdOut.putText(result.error);
+            }
+            else {
+                _StdOut.putText(result.data);
+            }
+        }
+        shellWrite(args) {
+            if (!_krnDiskDriver) {
+                _StdOut.putText("Disk driver is not loaded.");
+                return;
+            }
+            if (args.length < 2) {
+                _StdOut.putText("Usage: write <filename> \"data\"");
+                return;
+            }
+            var err = _krnDiskDriver.write(args[0], args[1]);
+            if (err) {
+                _StdOut.putText(err);
+            }
+            else {
+                _StdOut.putText("File written: " + args[0]);
+            }
+        }
+        shellDelete(args) {
+            if (!_krnDiskDriver) {
+                _StdOut.putText("Disk driver is not loaded.");
+                return;
+            }
+            if (args.length < 1) {
+                _StdOut.putText("Usage: delete <filename>");
+                return;
+            }
+            var err = _krnDiskDriver.delete(args[0]);
+            if (err) {
+                _StdOut.putText(err);
+            }
+            else {
+                _StdOut.putText("File deleted: " + args[0]);
             }
         }
     }

@@ -128,6 +128,10 @@ var TSOS;
             return null;
         }
         fileExists(filename) {
+            return this.findDirectoryEntry(filename) !== null;
+        }
+        // Returns [dirTrack, dirSector, dirBlock, dataTrack, dataSector, dataBlock] or null.
+        findDirectoryEntry(filename) {
             for (var s = 0; s < DISK_SECTORS; s++) {
                 for (var b = 0; b < DISK_BLOCKS; b++) {
                     if (!this.isDirectoryTSB(0, s, b)) {
@@ -135,11 +139,59 @@ var TSOS;
                     }
                     var bytes = this.readBlock(0, s, b);
                     if (this.isInUse(bytes) && this.readFilename(bytes) === filename) {
-                        return true;
+                        return [0, s, b, bytes[1], bytes[2], bytes[3]];
                     }
                 }
             }
-            return false;
+            return null;
+        }
+        getNextTSB(bytes) {
+            if (bytes[1] === 0xFF && bytes[2] === 0xFF && bytes[3] === 0xFF) {
+                return null;
+            }
+            return [bytes[1], bytes[2], bytes[3]];
+        }
+        setNextTSB(bytes, tsb) {
+            if (!tsb) {
+                bytes[1] = 0xFF;
+                bytes[2] = 0xFF;
+                bytes[3] = 0xFF;
+            }
+            else {
+                bytes[1] = tsb[0];
+                bytes[2] = tsb[1];
+                bytes[3] = tsb[2];
+            }
+        }
+        // Walk a data-block chain; returns list of [t, s, b].
+        collectDataChain(startTSB) {
+            var chain = [];
+            var current = startTSB;
+            var guard = 0;
+            var maxBlocks = DISK_TRACKS * DISK_SECTORS * DISK_BLOCKS;
+            while (current && guard < maxBlocks) {
+                chain[chain.length] = current;
+                var bytes = this.readBlock(current[0], current[1], current[2]);
+                current = this.getNextTSB(bytes);
+                guard++;
+            }
+            return chain;
+        }
+        freeBlock(track, sector, block) {
+            this.writeBlock(track, sector, block, this.emptyBlock());
+        }
+        countFreeDataBlocks() {
+            var count = 0;
+            for (var t = 1; t < DISK_TRACKS; t++) {
+                for (var s = 0; s < DISK_SECTORS; s++) {
+                    for (var b = 0; b < DISK_BLOCKS; b++) {
+                        if (!this.isInUse(this.readBlock(t, s, b))) {
+                            count++;
+                        }
+                    }
+                }
+            }
+            return count;
         }
         // create <filename>: allocate a directory entry + empty first data block.
         // Returns null on success, or an error message string.
@@ -174,6 +226,121 @@ var TSOS;
             dirBlock[3] = dataTSB[2];
             this.writeFilename(dirBlock, filename);
             this.writeBlock(dirTSB[0], dirTSB[1], dirTSB[2], dirBlock);
+            TSOS.Control.hostUpdateDiskDisplay();
+            return null;
+        }
+        // read <filename>: return file contents, or { error } on failure.
+        read(filename) {
+            if (!this.isFormatted()) {
+                return { error: "Disk is not formatted." };
+            }
+            if (!filename || filename.length === 0) {
+                return { error: "Filename required." };
+            }
+            var entry = this.findDirectoryEntry(filename);
+            if (!entry) {
+                return { error: "File not found." };
+            }
+            var content = "";
+            var chain = this.collectDataChain([entry[3], entry[4], entry[5]]);
+            for (var i = 0; i < chain.length; i++) {
+                var tsb = chain[i];
+                var bytes = this.readBlock(tsb[0], tsb[1], tsb[2]);
+                for (var j = DISK_HEADER_SIZE; j < DISK_BLOCK_SIZE; j++) {
+                    if (bytes[j] === 0) {
+                        return { data: content };
+                    }
+                    content += String.fromCharCode(bytes[j]);
+                }
+            }
+            return { data: content };
+        }
+        // write <filename> data: overwrite file contents. Returns null on success.
+        write(filename, data) {
+            if (!this.isFormatted()) {
+                return "Disk is not formatted.";
+            }
+            if (!filename || filename.length === 0) {
+                return "Filename required.";
+            }
+            var entry = this.findDirectoryEntry(filename);
+            if (!entry) {
+                return "File not found.";
+            }
+            if (data === null || data === undefined) {
+                data = "";
+            }
+            var firstTSB = [entry[3], entry[4], entry[5]];
+            var chain = this.collectDataChain(firstTSB);
+            var blocksNeeded = Math.max(1, Math.ceil(data.length / DISK_DATA_SIZE));
+            if (data.length === 0) {
+                blocksNeeded = 1;
+            }
+            var extraNeeded = blocksNeeded - chain.length;
+            if (extraNeeded > 0 && this.countFreeDataBlocks() < extraNeeded) {
+                return "Disk is full.";
+            }
+            // Free unused trailing blocks from a previous longer write.
+            while (chain.length > blocksNeeded) {
+                var drop = chain.pop();
+                this.freeBlock(drop[0], drop[1], drop[2]);
+            }
+            // Allocate any additional blocks required for this write.
+            while (chain.length < blocksNeeded) {
+                var free = this.findFreeDataBlock();
+                if (!free) {
+                    return "Disk is full.";
+                }
+                var newBlock = this.emptyBlock();
+                newBlock[0] = 0x01;
+                this.writeBlock(free[0], free[1], free[2], newBlock);
+                chain[chain.length] = free;
+            }
+            // Write data across the chain and link next pointers.
+            var offset = 0;
+            for (var i = 0; i < chain.length; i++) {
+                var tsb = chain[i];
+                var block = this.emptyBlock();
+                block[0] = 0x01;
+                if (i < chain.length - 1) {
+                    this.setNextTSB(block, chain[i + 1]);
+                }
+                else {
+                    this.setNextTSB(block, null);
+                }
+                for (var j = 0; j < DISK_DATA_SIZE; j++) {
+                    if (offset < data.length) {
+                        block[DISK_HEADER_SIZE + j] = data.charCodeAt(offset) & 0xFF;
+                        offset++;
+                    }
+                    else {
+                        block[DISK_HEADER_SIZE + j] = 0x00;
+                    }
+                }
+                this.writeBlock(tsb[0], tsb[1], tsb[2], block);
+            }
+            TSOS.Control.hostUpdateDiskDisplay();
+            return null;
+        }
+        // delete <filename>: delete a file from the disk.
+        // Returns null on success, or an error message string.
+        delete(filename) {
+            if (!this.isFormatted()) {
+                return "Disk is not formatted.";
+            }
+            if (!filename || filename.length === 0) {
+                return "Filename required.";
+            }
+            var entry = this.findDirectoryEntry(filename);
+            if (!entry) {
+                return "File not found.";
+            }
+            // Free every data block in the chain, then the directory entry.
+            var chain = this.collectDataChain([entry[3], entry[4], entry[5]]);
+            for (var i = 0; i < chain.length; i++) {
+                this.freeBlock(chain[i][0], chain[i][1], chain[i][2]);
+            }
+            this.writeBlock(entry[0], entry[1], entry[2], this.emptyBlock());
             TSOS.Control.hostUpdateDiskDisplay();
             return null;
         }
