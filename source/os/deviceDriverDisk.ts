@@ -384,5 +384,78 @@ module TSOS {
             Control.hostUpdateDiskDisplay();
             return null;
         }
+
+        // copy <existing> <new>: duplicate a file under a new name.
+        // Returns null on success, or an error message string.
+        public copy(existingFilename: string, newFilename: string): string | null {
+            if (!this.isFormatted()) {
+                return "Disk is not formatted.";
+            }
+            if (!existingFilename || existingFilename.length === 0 ||
+                !newFilename || newFilename.length === 0) {
+                return "Usage: copy <existing filename> <new filename>";
+            }
+            if (newFilename.length > DISK_DATA_SIZE) {
+                return "Filename too long (max " + DISK_DATA_SIZE + " characters).";
+            }
+            if (existingFilename === newFilename) {
+                return "Source and destination filenames must differ.";
+            }
+            if (!this.fileExists(existingFilename)) {
+                return "File not found.";
+            }
+            if (this.fileExists(newFilename)) {
+                return "File already exists.";
+            }
+
+            var result = this.read(existingFilename);
+            if (result.error) {
+                return result.error;
+            }
+
+            var createErr = this.create(newFilename);
+            if (createErr) {
+                return createErr;
+            }
+
+            var writeErr = this.write(newFilename, result.data || "");
+            if (writeErr) {
+                this.delete(newFilename);
+                return writeErr;
+            }
+            return null;
+        }
+
+        // rename <current> <new>: change a file's directory name in place.
+        // Returns null on success, or an error message string.
+        public rename(currentFilename: string, newFilename: string): string | null {
+            if (!this.isFormatted()) {
+                return "Disk is not formatted.";
+            }
+            if (!currentFilename || currentFilename.length === 0 ||
+                !newFilename || newFilename.length === 0) {
+                return "Usage: rename <current filename> <new filename>";
+            }
+            if (newFilename.length > DISK_DATA_SIZE) {
+                return "Filename too long (max " + DISK_DATA_SIZE + " characters).";
+            }
+            if (currentFilename === newFilename) {
+                return "Current and new filenames must differ.";
+            }
+
+            var entry = this.findDirectoryEntry(currentFilename);
+            if (!entry) {
+                return "File not found.";
+            }
+            if (this.fileExists(newFilename)) {
+                return "File already exists.";
+            }
+
+            var dirBlock = this.readBlock(entry[0], entry[1], entry[2]);
+            this.writeFilename(dirBlock, newFilename);
+            this.writeBlock(entry[0], entry[1], entry[2], dirBlock);
+            Control.hostUpdateDiskDisplay();
+            return null;
+        }
     }
 }

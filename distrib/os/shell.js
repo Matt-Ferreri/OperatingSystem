@@ -103,6 +103,12 @@ var TSOS;
             // delete <filename> - delete a file
             sc = new TSOS.ShellCommand(this.shellDelete, "delete", "<filename> - Deletes a file.");
             this.commandList[this.commandList.length] = sc;
+            // copy <existing filename> <new filename> - copy a file
+            sc = new TSOS.ShellCommand(this.shellCopy, "copy", "<existing filename> <new filename> - Copies a file.");
+            this.commandList[this.commandList.length] = sc;
+            // rename <current filename> <new filename> - rename a file
+            sc = new TSOS.ShellCommand(this.shellRename, "rename", "<current filename> <new filename> - Renames a file.");
+            this.commandList[this.commandList.length] = sc;
             // Display the initial prompt.
             this.putPrompt();
         }
@@ -293,6 +299,12 @@ var TSOS;
                         break;
                     case "delete":
                         _StdOut.putText("Deletes a file from disk. Usage: delete <filename>.");
+                        break;
+                    case "copy":
+                        _StdOut.putText("Copies a file. Usage: copy <existing filename> <new filename>.");
+                        break;
+                    case "rename":
+                        _StdOut.putText("Renames a file. Usage: rename <current filename> <new filename>.");
                         break;
                     // TODO: Make descriptive MANual page entries for the the rest of the shell commands here.
                     default:
@@ -653,6 +665,40 @@ var TSOS;
             }
             else {
                 _StdOut.putText("File deleted: " + args[0]);
+            }
+        }
+        shellCopy(args) {
+            if (!_krnDiskDriver) {
+                _StdOut.putText("Disk driver is not loaded.");
+                return;
+            }
+            if (args.length < 2) {
+                _StdOut.putText("Usage: copy <existing filename> <new filename>");
+                return;
+            }
+            var err = _krnDiskDriver.copy(args[0], args[1]);
+            if (err) {
+                _StdOut.putText(err);
+            }
+            else {
+                _StdOut.putText("File copied: " + args[0] + " -> " + args[1]);
+            }
+        }
+        shellRename(args) {
+            if (!_krnDiskDriver) {
+                _StdOut.putText("Disk driver is not loaded.");
+                return;
+            }
+            if (args.length < 2) {
+                _StdOut.putText("Usage: rename <current filename> <new filename>");
+                return;
+            }
+            var err = _krnDiskDriver.rename(args[0], args[1]);
+            if (err) {
+                _StdOut.putText(err);
+            }
+            else {
+                _StdOut.putText("File renamed: " + args[0] + " -> " + args[1]);
             }
         }
     }
