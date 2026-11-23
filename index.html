@@ -21,6 +21,7 @@
    <script type="text/javascript" src="distrib/host/cpu.js"></script>
    <script type="text/javascript" src="distrib/host/memory.js"></script>
    <script type="text/javascript" src="distrib/host/memoryAccessor.js"></script>
+   <script type="text/javascript" src="distrib/host/disk.js"></script>
 
    <!-- Virtual OS Routines: Make sure Kernel code is last, since it needs those above it. -->
    <script type="text/javascript" src="distrib/os/interrupt.js"></script>
@@ -28,6 +29,7 @@
    <script type="text/javascript" src="distrib/os/console.js"></script>
    <script type="text/javascript" src="distrib/os/deviceDriver.js"></script>
    <script type="text/javascript" src="distrib/os/deviceDriverKeyboard.js"></script>
+   <script type="text/javascript" src="distrib/os/deviceDriverDisk.js"></script>
    <script type="text/javascript" src="distrib/os/queue.js"></script>
    <script type="text/javascript" src="distrib/os/pcb.js"></script>
    <script type="text/javascript" src="distrib/os/memoryManager.js"></script>
@@ -225,6 +227,14 @@
          <span class="panel-hint">768 bytes · programs load at 0, 256, and 512</span>
       </div>
       <div id="memoryDisplay" class="memory-body"></div>
+   </section>
+
+   <section id="divDisk" class="panel panel-disk" aria-label="Disk">
+      <div class="panel-header">
+         <h2>Disk</h2>
+         <span class="panel-hint" id="diskStatusHint">4×8×8 · not initialized</span>
+      </div>
+      <div id="diskDisplay" class="disk-body"></div>
    </section>
 
    <p class="footerText">

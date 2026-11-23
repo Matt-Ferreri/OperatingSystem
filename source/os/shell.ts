@@ -158,6 +158,12 @@ module TSOS {
                                   "<int> - Sets the Round Robin quantum in CPU cycles.");
             this.commandList[this.commandList.length] = sc;
 
+            // format [-quick] - initialize the hard drive
+            sc = new ShellCommand(this.shellFormat,
+                                  "format",
+                                  "[-quick] - Formats the disk (all blocks, or headers only with -quick).");
+            this.commandList[this.commandList.length] = sc;
+
             // Display the initial prompt.
             this.putPrompt();
         }
@@ -319,6 +325,9 @@ module TSOS {
                 switch (topic) {
                     case "help":
                         _StdOut.putText("Help displays a list of (hopefully) valid commands.");
+                        break;
+                    case "format":
+                        _StdOut.putText("Formats the disk. Optional -quick clears only block headers.");
                         break;
                     // TODO: Make descriptive MANual page entries for the the rest of the shell commands here.
                     default:
@@ -622,6 +631,27 @@ module TSOS {
                 _StdOut.putText("Usage: prompt <string>  Please supply a string.");
             }
         }
+        public shellFormat(args: string[]) {
+            if (!_krnDiskDriver) {
+                _StdOut.putText("Disk driver is not loaded.");
+                return;
+            }
 
+            var quick = false;
+            if (args.length > 0) {
+                if (args[0] === "-quick") {
+                    quick = true;
+                } else {
+                    _StdOut.putText("Usage: format [-quick]");
+                    return;
+                }
+            }
+
+            if (_krnDiskDriver.format(quick)) {
+                _StdOut.putText(quick ? "Disk quick-formatted." : "Disk formatted.");
+            } else {
+                _StdOut.putText("Disk format failed.");
+            }
+        }
     }
 }

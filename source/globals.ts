@@ -28,6 +28,16 @@ const MEMORY_SEGMENT_BASES: number[] = [0, 256, 512]; // 0-255, 256-511, 512-767
 // Default round-robin slice length, in CPU cycles. q changes the live value.
 const CPU_QUANTUM: number = 6;
 
+// Host disk layout: tracks x sectors x blocks, each block DISK_BLOCK_SIZE bytes.
+// Byte 0 = in-use flag; bytes 1-3 = next TSB; bytes 4-63 = data.
+const DISK_TRACKS: number = 4;
+const DISK_SECTORS: number = 8;
+const DISK_BLOCKS: number = 8;
+const DISK_BLOCK_SIZE: number = 64;
+const DISK_HEADER_SIZE: number = 4;
+const DISK_DATA_SIZE: number = DISK_BLOCK_SIZE - DISK_HEADER_SIZE;
+const DISK_STORAGE_PREFIX: string = "tsos.disk.";
+
 
 //
 // Global Variables
@@ -36,6 +46,7 @@ const CPU_QUANTUM: number = 6;
 var _CPU: TSOS.Cpu;  // Utilize TypeScript's type annotation system to ensure that _CPU is an instance of the Cpu class.
 var _Memory: TSOS.Memory;
 var _MemoryAccessor: TSOS.MemoryAccessor;
+var _Disk: TSOS.Disk;
 var _MemoryManager: any = null;
 var _CurrentPCB: any = null;
 var _ReadyQueue: TSOS.Queue = null;
@@ -83,6 +94,7 @@ var _SingleStep: boolean = false;
 
 // Global Device Driver Objects - page 12
 var _krnKeyboardDriver: TSOS.DeviceDriverKeyboard  = null;
+var _krnDiskDriver: any = null;
 
 var _hardwareClockID: number = null;
 

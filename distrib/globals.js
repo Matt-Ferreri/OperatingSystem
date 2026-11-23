@@ -23,6 +23,15 @@ const MEMORY_SEGMENT_SIZE = 256;
 const MEMORY_SEGMENT_BASES = [0, 256, 512]; // 0-255, 256-511, 512-767
 // Default round-robin slice length, in CPU cycles. q changes the live value.
 const CPU_QUANTUM = 6;
+// Host disk layout: tracks x sectors x blocks, each block DISK_BLOCK_SIZE bytes.
+// Byte 0 = in-use flag; bytes 1-3 = next TSB; bytes 4-63 = data.
+const DISK_TRACKS = 4;
+const DISK_SECTORS = 8;
+const DISK_BLOCKS = 8;
+const DISK_BLOCK_SIZE = 64;
+const DISK_HEADER_SIZE = 4;
+const DISK_DATA_SIZE = DISK_BLOCK_SIZE - DISK_HEADER_SIZE;
+const DISK_STORAGE_PREFIX = "tsos.disk.";
 //
 // Global Variables
 // TODO: Make a global object and use that instead of the "_" naming convention in the global namespace.
@@ -30,6 +39,7 @@ const CPU_QUANTUM = 6;
 var _CPU; // Utilize TypeScript's type annotation system to ensure that _CPU is an instance of the Cpu class.
 var _Memory;
 var _MemoryAccessor;
+var _Disk;
 var _MemoryManager = null;
 var _CurrentPCB = null;
 var _ReadyQueue = null;
@@ -66,6 +76,7 @@ var _KernelTrapped = false;
 var _SingleStep = false;
 // Global Device Driver Objects - page 12
 var _krnKeyboardDriver = null;
+var _krnDiskDriver = null;
 var _hardwareClockID = null;
 // For testing (and enrichment)...
 var Glados = null; // This is the function Glados() in glados-ip*.js http://alanclasses.github.io/TSOS/test/ .

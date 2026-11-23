@@ -88,6 +88,9 @@ var TSOS;
             // q <int> - set the round-robin quantum
             sc = new TSOS.ShellCommand(this.shellQuantum, "q", "<int> - Sets the Round Robin quantum in CPU cycles.");
             this.commandList[this.commandList.length] = sc;
+            // format [-quick] - initialize the hard drive
+            sc = new TSOS.ShellCommand(this.shellFormat, "format", "[-quick] - Formats the disk (all blocks, or headers only with -quick).");
+            this.commandList[this.commandList.length] = sc;
             // Display the initial prompt.
             this.putPrompt();
         }
@@ -237,6 +240,9 @@ var TSOS;
                 switch (topic) {
                     case "help":
                         _StdOut.putText("Help displays a list of (hopefully) valid commands.");
+                        break;
+                    case "format":
+                        _StdOut.putText("Formats the disk. Optional -quick clears only block headers.");
                         break;
                     // TODO: Make descriptive MANual page entries for the the rest of the shell commands here.
                     default:
@@ -507,6 +513,28 @@ var TSOS;
             }
             else {
                 _StdOut.putText("Usage: prompt <string>  Please supply a string.");
+            }
+        }
+        shellFormat(args) {
+            if (!_krnDiskDriver) {
+                _StdOut.putText("Disk driver is not loaded.");
+                return;
+            }
+            var quick = false;
+            if (args.length > 0) {
+                if (args[0] === "-quick") {
+                    quick = true;
+                }
+                else {
+                    _StdOut.putText("Usage: format [-quick]");
+                    return;
+                }
+            }
+            if (_krnDiskDriver.format(quick)) {
+                _StdOut.putText(quick ? "Disk quick-formatted." : "Disk formatted.");
+            }
+            else {
+                _StdOut.putText("Disk format failed.");
             }
         }
     }

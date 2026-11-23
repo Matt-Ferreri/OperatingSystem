@@ -39,10 +39,11 @@ var TSOS;
             Control.hostUpdateTaskBarStatus(_Status);
             Control.hostUpdateTaskBarDateTime();
             setInterval(Control.hostUpdateTaskBarDateTime, 1000);
-            // Build the initial empty memory display.
+            // Build the initial empty memory / disk displays.
             Control.hostUpdateMemoryDisplay();
             Control.hostUpdateCpuDisplay();
             Control.hostUpdatePcbDisplay();
+            Control.hostUpdateDiskDisplay();
             // Check for our testing and enrichment core, which
             // may be referenced here (from index.html) as function Glados().
             if (typeof Glados === "function") {
@@ -197,6 +198,70 @@ var TSOS;
             }
             body.innerHTML = html;
         }
+        // Render every TSB: header (in-use + next) and data bytes.
+        static hostUpdateDiskDisplay() {
+            var container = document.getElementById("diskDisplay");
+            var statusEl = document.getElementById("diskStatusHint");
+            if (!container) {
+                return;
+            }
+            if (!_Disk) {
+                if (statusEl) {
+                    statusEl.textContent = "disk not initialized";
+                }
+                container.innerHTML = "<p class='disk-empty'>Start the OS to initialize the disk.</p>";
+                return;
+            }
+            if (statusEl) {
+                statusEl.textContent = _Disk.isFormatted
+                    ? (DISK_TRACKS + "×" + DISK_SECTORS + "×" + DISK_BLOCKS + " · formatted")
+                    : (DISK_TRACKS + "×" + DISK_SECTORS + "×" + DISK_BLOCKS + " · not formatted (run format)");
+            }
+            if (!_Disk.isFormatted) {
+                container.innerHTML = "<p class='disk-empty'>Disk is not formatted. Run <code>format</code> in the shell.</p>";
+                return;
+            }
+            var toHex = function (value) {
+                return (value & 0xFF).toString(16).toUpperCase().padStart(2, "0");
+            };
+            var html = "<table class='disk-table'><thead><tr>" +
+                "<th>TSB</th><th>Use</th><th>Next</th><th>Data</th>" +
+                "</tr></thead><tbody>";
+            for (var t = 0; t < DISK_TRACKS; t++) {
+                for (var s = 0; s < DISK_SECTORS; s++) {
+                    for (var b = 0; b < DISK_BLOCKS; b++) {
+                        var bytes = _Disk.read(t, s, b);
+                        var inUse = bytes[0] !== 0;
+                        var next = (bytes[1] === 0xFF && bytes[2] === 0xFF && bytes[3] === 0xFF)
+                            ? "—"
+                            : (bytes[1] + ":" + bytes[2] + ":" + bytes[3]);
+                        var dataHex = "";
+                        for (var i = DISK_HEADER_SIZE; i < DISK_BLOCK_SIZE; i++) {
+                            if (i > DISK_HEADER_SIZE) {
+                                dataHex += " ";
+                            }
+                            dataHex += toHex(bytes[i]);
+                        }
+                        var classes = [];
+                        if (t === 0) {
+                            classes.push("disk-dir");
+                        }
+                        if (inUse) {
+                            classes.push("disk-used");
+                        }
+                        var rowClass = classes.length > 0 ? (" class='" + classes.join(" ") + "'") : "";
+                        html += "<tr" + rowClass + ">" +
+                            "<td class='disk-tsb'>" + t + ":" + s + ":" + b + "</td>" +
+                            "<td>" + (inUse ? "1" : "0") + "</td>" +
+                            "<td>" + next + "</td>" +
+                            "<td class='disk-data'>" + dataHex + "</td>" +
+                            "</tr>";
+                    }
+                }
+            }
+            html += "</tbody></table>";
+            container.innerHTML = html;
+        }
         static hostLog(msg, source = "?") {
             // Note the OS CLOCK.
             var clock = _OSclock;
@@ -230,6 +295,10 @@ var TSOS;
             _Memory.init();
             _MemoryAccessor = new TSOS.MemoryAccessor();
             Control.hostUpdateMemoryDisplay(_Memory.cells);
+            // ... Create and initialize host disk (sessionStorage-backed) ...
+            _Disk = new TSOS.Disk();
+            _Disk.init();
+            Control.hostUpdateDiskDisplay();
             // ... then set the host clock pulse ...
             _hardwareClockID = setInterval(TSOS.Devices.hostClockPulse, CPU_CLOCK_INTERVAL);
             // .. and call the OS Kernel Bootstrap routine.

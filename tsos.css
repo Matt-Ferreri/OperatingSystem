@@ -316,7 +316,8 @@ textarea::placeholder {
   border: 0;
 }
 
-.panel-memory {
+.panel-memory,
+.panel-disk {
   margin-top: 16px;
 }
 
@@ -325,6 +326,61 @@ textarea::placeholder {
   overflow: auto;
   padding: 10px 14px 12px;
   background: var(--bg-input);
+}
+
+.disk-body {
+  max-height: 360px;
+  overflow: auto;
+  padding: 10px 14px 12px;
+  background: var(--bg-input);
+}
+
+.disk-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.disk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.disk-table th,
+.disk-table td {
+  padding: 2px 6px;
+  text-align: left;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.disk-table th {
+  color: var(--muted);
+  font-weight: 500;
+  position: sticky;
+  top: 0;
+  background: var(--bg-input);
+}
+
+.disk-table .disk-tsb {
+  color: var(--muted);
+  padding-right: 10px;
+}
+
+.disk-table tr.disk-dir .disk-tsb {
+  color: var(--accent);
+}
+
+.disk-table tr.disk-used td {
+  color: var(--text);
+}
+
+.disk-table .disk-data {
+  white-space: nowrap;
+  color: var(--text);
 }
 
 .memory-table {
