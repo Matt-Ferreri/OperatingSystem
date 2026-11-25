@@ -134,7 +134,7 @@ var TSOS;
                 if (chr === String.fromCharCode(13)) { // the Enter key
                     this.followLive();
                     // Remember non-empty commands for up/down recall.
-                    if (this.buffer !== "") {
+                    if (TSOS.Utils.trim(this.buffer) !== "") {
                         this.commandHistory[this.commandHistory.length] = this.buffer;
                     }
                     this.historyIndex = this.commandHistory.length;

@@ -272,6 +272,12 @@ module TSOS {
             // ... and assign the command and args to local variables.
             var cmd = userCommand.command;
             var args = userCommand.args;
+            // Empty / whitespace-only Enter: do nothing (new prompt, no "Invalid Command").
+            if (cmd === "") {
+                _StdOut.advanceLine();
+                this.putPrompt();
+                return;
+            }
             //
             // Determine the command and execute it.
             //
