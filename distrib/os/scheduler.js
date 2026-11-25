@@ -4,8 +4,8 @@
 
      CPU scheduler with Round Robin (default), FCFS, and non-preemptive
      priority. runall places every resident program on the ready queue;
-     dispatch picks the next process according to _Schedule and rolls
-     disk-backed processes into memory before they run.
+     dispatch picks the next process according to _Schedule and pages in
+     the faulting page before the process runs.
      ------------ */
 var TSOS;
 (function (TSOS) {
@@ -63,7 +63,9 @@ var TSOS;
             _CPU.Zflag = pcb.zFlag;
             _CPU.IR = pcb.ir;
             pcb.state = "Running";
-            pcb.location = "Memory";
+            if (pcb.syncLocation) {
+                pcb.syncLocation();
+            }
             _CPU.isExecuting = true;
             _QuantumCount = 0;
             TSOS.Control.hostUpdateCpuDisplay();
@@ -106,14 +108,14 @@ var TSOS;
                 }
                 return;
             }
-            // Skip processes that cannot be rolled into memory right now.
+            // Skip processes that cannot page in the page holding their PC.
             var skipped = [];
             var next = null;
             while (!_ReadyQueue.isEmpty()) {
                 var candidate = this.pickNext();
                 if (_MemoryManager && !_MemoryManager.ensureInMemory(candidate)) {
                     if (_Kernel) {
-                        _Kernel.krnTrace("Failed to roll in PID " + candidate.pid);
+                        _Kernel.krnTrace("Failed to page in PID " + candidate.pid);
                     }
                     candidate.state = "Ready";
                     skipped[skipped.length] = candidate;

@@ -20,10 +20,13 @@ const TIMER_IRQ: number = 0;  // Pages 23 (timer), 9 (interrupts), and 561 (inte
                               // NOTE: The timer is different from hardware/host clock pulses. Don't confuse these.
 const KEYBOARD_IRQ: number = 1;
 
-// Host memory layout: one contiguous 768-byte block with three program load bases.
+// Host memory layout: 768 bytes of physical RAM divided into fixed-size frames.
 const MEMORY_SIZE: number = 768;
-const MEMORY_SEGMENT_SIZE: number = 256;
-const MEMORY_SEGMENT_BASES: number[] = [0, 256, 512]; // 0-255, 256-511, 512-767
+const PAGE_SIZE: number = 256;
+const FRAME_COUNT: number = MEMORY_SIZE / PAGE_SIZE; // 3 frames at 0, 256, 512
+const PAGES_PER_PROCESS: number = 1;                 // 256-byte logical address space
+const LOGICAL_ADDRESS_SPACE: number = PAGE_SIZE * PAGES_PER_PROCESS;
+
 
 // Default round-robin slice length, in CPU cycles. q changes the live value.
 const CPU_QUANTUM: number = 6;

@@ -17,10 +17,12 @@ const CPU_CLOCK_INTERVAL = 100; // This is in ms (milliseconds) so 1000 = 1 seco
 const TIMER_IRQ = 0; // Pages 23 (timer), 9 (interrupts), and 561 (interrupt priority).
 // NOTE: The timer is different from hardware/host clock pulses. Don't confuse these.
 const KEYBOARD_IRQ = 1;
-// Host memory layout: one contiguous 768-byte block with three program load bases.
+// Host memory layout: 768 bytes of physical RAM divided into fixed-size frames.
 const MEMORY_SIZE = 768;
-const MEMORY_SEGMENT_SIZE = 256;
-const MEMORY_SEGMENT_BASES = [0, 256, 512]; // 0-255, 256-511, 512-767
+const PAGE_SIZE = 256;
+const FRAME_COUNT = MEMORY_SIZE / PAGE_SIZE; // 3 frames at 0, 256, 512
+const PAGES_PER_PROCESS = 1; // 256-byte logical address space
+const LOGICAL_ADDRESS_SPACE = PAGE_SIZE * PAGES_PER_PROCESS;
 // Default round-robin slice length, in CPU cycles. q changes the live value.
 const CPU_QUANTUM = 6;
 // Default process priority (lower number = higher priority). load can override.

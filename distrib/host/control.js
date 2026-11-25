@@ -67,7 +67,7 @@ var TSOS;
             }
         }
         // Render memory as one continuous block (0-767).
-        // Program load bases (0, 256, 512) are marked in the table for later use.
+        // Frame boundaries (multiples of PAGE_SIZE) are marked in the table.
         static hostUpdateMemoryDisplay(memory) {
             var container = document.getElementById("memoryDisplay");
             if (!container) {
@@ -78,16 +78,19 @@ var TSOS;
             var highlightStart = -1;
             var highlightEnd = -1;
             if (_SingleStep && _CPU && _CPU.isExecuting) {
-                var base = _CurrentPCB ? _CurrentPCB.base : 0;
-                highlightStart = base + (_CPU.PC & 0xFF);
-                var opcodeByte = (memory && highlightStart < memory.length) ? (memory[highlightStart] & 0xFF) : 0;
-                highlightEnd = highlightStart + Control.hostOpcodeLength(opcodeByte);
+                if (_CurrentPCB && _MemoryManager && _MemoryManager.peekPhysical) {
+                    highlightStart = _MemoryManager.peekPhysical(_CurrentPCB, _CPU.PC & 0xFF);
+                }
+                if (highlightStart >= 0) {
+                    var opcodeByte = (memory && highlightStart < memory.length) ? (memory[highlightStart] & 0xFF) : 0;
+                    highlightEnd = highlightStart + Control.hostOpcodeLength(opcodeByte);
+                }
             }
             var html = "<table class='memory-table'><tbody>";
             for (var addr = 0; addr < MEMORY_SIZE; addr += BYTES_PER_ROW) {
                 var addrHex = addr.toString(16).toUpperCase().padStart(3, "0");
-                var isSegmentBase = MEMORY_SEGMENT_BASES.indexOf(addr) >= 0;
-                var rowClass = isSegmentBase ? " class='mem-segment-base'" : "";
+                var isFrameBase = (addr % PAGE_SIZE) === 0;
+                var rowClass = isFrameBase ? " class='mem-segment-base'" : "";
                 html += "<tr" + rowClass + "><td class='mem-addr'>" + addrHex + "</td>";
                 for (var col = 0; col < BYTES_PER_ROW; col++) {
                     var index = addr + col;
@@ -169,7 +172,7 @@ var TSOS;
                 return (value & ((1 << (width * 4)) - 1)).toString(16).toUpperCase().padStart(width, "0");
             };
             if (!_MemoryManager || !_MemoryManager.residentList || _MemoryManager.residentList.length === 0) {
-                body.innerHTML = "<tr><td colspan='14'>No processes</td></tr>";
+                body.innerHTML = "<tr><td colspan='13'>No processes</td></tr>";
                 return;
             }
             var html = "";
@@ -180,15 +183,14 @@ var TSOS;
                 if (_Schedule === "rr" && pcb === _CurrentPCB && pcb.state === "Running") {
                     quantum = String(Math.max(0, _Quantum - _QuantumCount));
                 }
-                var segmentLabel = (pcb.location === "Disk" || pcb.segment < 0) ? "—" : String(pcb.segment);
-                var baseLabel = (pcb.location === "Disk") ? "—" : String(pcb.base);
+                var frame = (pcb.residentFrame) ? pcb.residentFrame(0) : -1;
+                var frameLabel = (frame < 0) ? "—" : String(frame);
                 html += "<tr>" +
                     "<td>" + pcb.pid + "</td>" +
                     "<td>" + pcb.state + "</td>" +
                     "<td>" + pcb.location + "</td>" +
-                    "<td>" + baseLabel + "</td>" +
-                    "<td>" + pcb.limit + "</td>" +
-                    "<td>" + segmentLabel + "</td>" +
+                    "<td>" + frameLabel + "</td>" +
+                    "<td>" + PAGE_SIZE + "</td>" +
                     "<td>" + pcb.priority + "</td>" +
                     "<td>" + quantum + "</td>" +
                     "<td>" + toHex(pcb.pc) + "</td>" +

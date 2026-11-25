@@ -71,8 +71,8 @@ var TSOS;
             // run <pid> - execute a loaded process
             sc = new TSOS.ShellCommand(this.shellRun, "run", "<pid> - Runs the process with the given PID.");
             this.commandList[this.commandList.length] = sc;
-            // clearmem - zero every memory segment
-            sc = new TSOS.ShellCommand(this.shellClearmem, "clearmem", "- Clears all memory segments back to 0.");
+            // clearmem - zero every memory frame
+            sc = new TSOS.ShellCommand(this.shellClearmem, "clearmem", "- Clears all memory frames back to 0.");
             this.commandList[this.commandList.length] = sc;
             // runall - run every loaded program together
             sc = new TSOS.ShellCommand(this.shellRunall, "runall", "- Runs every loaded program at once.");
@@ -551,17 +551,17 @@ var TSOS;
             for (var i = 0; i < hexBytes.length; i++) {
                 bytes.push(parseInt(hexBytes[i], 16));
             }
-            if (bytes.length > MEMORY_SEGMENT_SIZE) {
-                _StdOut.putText("Program too large. Max " + MEMORY_SEGMENT_SIZE + " bytes per segment.");
+            if (bytes.length > LOGICAL_ADDRESS_SPACE) {
+                _StdOut.putText("Program too large. Max " + LOGICAL_ADDRESS_SPACE + " bytes.");
                 return;
             }
             var pcb = _MemoryManager.loadProgram(bytes, priority);
             if (!pcb) {
                 if (!_krnDiskDriver || !_krnDiskDriver.isFormatted()) {
-                    _StdOut.putText("No free memory segment. Format the disk to swap additional programs.");
+                    _StdOut.putText("No free memory frame. Format the disk to page additional programs.");
                 }
                 else {
-                    _StdOut.putText("Unable to load program: memory and disk swap are full.");
+                    _StdOut.putText("Unable to load program: memory and disk page store are full.");
                 }
                 return;
             }
@@ -570,7 +570,8 @@ var TSOS;
                     " (" + bytes.length + " bytes, priority " + pcb.priority + ").");
             }
             else {
-                _StdOut.putText("Process with pid " + pcb.pid + " loaded at " + pcb.base +
+                var frame = pcb.residentFrame ? pcb.residentFrame(0) : -1;
+                _StdOut.putText("Process with pid " + pcb.pid + " loaded in frame " + frame +
                     " (" + bytes.length + " bytes, priority " + pcb.priority + ").");
             }
         }
@@ -603,7 +604,7 @@ var TSOS;
                 return;
             }
             if (!_MemoryManager.ensureInMemory(pcb)) {
-                _StdOut.putText("Unable to roll in process " + pid + " from disk.");
+                _StdOut.putText("Unable to page in process " + pid + " from disk.");
                 return;
             }
             _Scheduler.loadToCpu(pcb);

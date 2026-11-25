@@ -199,9 +199,8 @@
                         <th>PID</th>
                         <th>State</th>
                         <th>Location</th>
-                        <th>Base</th>
-                        <th>Limit</th>
-                        <th>Segment</th>
+                        <th>Frame</th>
+                        <th>Page Size</th>
                         <th>Priority</th>
                         <th>Quantum</th>
                         <th>PC</th>
@@ -213,7 +212,7 @@
                      </tr>
                   </thead>
                   <tbody id="pcbTableBody">
-                     <tr><td colspan="14">No processes</td></tr>
+                     <tr><td colspan="13">No processes</td></tr>
                   </tbody>
                </table>
             </div>
@@ -224,7 +223,7 @@
    <section id="divMemory" class="panel panel-memory" aria-label="Memory">
       <div class="panel-header">
          <h2>Memory</h2>
-         <span class="panel-hint">768 bytes · programs load at 0, 256, and 512</span>
+         <span class="panel-hint">768 bytes · 3 frames × 256 · demand paging</span>
       </div>
       <div id="memoryDisplay" class="memory-body"></div>
    </section>

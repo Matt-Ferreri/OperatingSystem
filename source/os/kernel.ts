@@ -47,7 +47,7 @@ module TSOS {
             this.krnTrace(_krnDiskDriver.status);
             Control.hostUpdateDiskDisplay();
 
-            // Initialize the memory manager (assigns programs to segments 0 / 256 / 512).
+            // Initialize the memory manager (demand paging over physical frames).
             _MemoryManager = new MemoryManager();
 
             // Enable the OS Interrupts.  (Not the CPU clock interrupt, as that is done in the hardware sim.)
