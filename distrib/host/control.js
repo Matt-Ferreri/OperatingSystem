@@ -180,13 +180,15 @@ var TSOS;
                 if (_Schedule === "rr" && pcb === _CurrentPCB && pcb.state === "Running") {
                     quantum = String(Math.max(0, _Quantum - _QuantumCount));
                 }
+                var segmentLabel = (pcb.location === "Disk" || pcb.segment < 0) ? "—" : String(pcb.segment);
+                var baseLabel = (pcb.location === "Disk") ? "—" : String(pcb.base);
                 html += "<tr>" +
                     "<td>" + pcb.pid + "</td>" +
                     "<td>" + pcb.state + "</td>" +
                     "<td>" + pcb.location + "</td>" +
-                    "<td>" + pcb.base + "</td>" +
+                    "<td>" + baseLabel + "</td>" +
                     "<td>" + pcb.limit + "</td>" +
-                    "<td>" + pcb.segment + "</td>" +
+                    "<td>" + segmentLabel + "</td>" +
                     "<td>" + pcb.priority + "</td>" +
                     "<td>" + quantum + "</td>" +
                     "<td>" + toHex(pcb.pc) + "</td>" +

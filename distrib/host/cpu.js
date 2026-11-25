@@ -157,6 +157,9 @@ var TSOS;
             if (_CurrentPCB) {
                 this.syncPcb();
                 _CurrentPCB.state = finalState;
+                if (_MemoryManager) {
+                    _MemoryManager.freeProcess(_CurrentPCB);
+                }
                 if (_Scheduler) {
                     _Scheduler.reportMetrics(_CurrentPCB, restorePrompt);
                 }

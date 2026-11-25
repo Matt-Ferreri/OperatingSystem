@@ -686,12 +686,21 @@ module TSOS {
 
             var pcb = _MemoryManager.loadProgram(bytes, priority);
             if (!pcb) {
-                _StdOut.putText("No free memory segment. All three slots are in use.");
+                if (!_krnDiskDriver || !_krnDiskDriver.isFormatted()) {
+                    _StdOut.putText("No free memory segment. Format the disk to swap additional programs.");
+                } else {
+                    _StdOut.putText("Unable to load program: memory and disk swap are full.");
+                }
                 return;
             }
 
-            _StdOut.putText("Process with pid " + pcb.pid + " loaded at " + pcb.base +
-                " (" + bytes.length + " bytes, priority " + pcb.priority + ").");
+            if (pcb.location === "Disk") {
+                _StdOut.putText("Process with pid " + pcb.pid + " loaded on disk" +
+                    " (" + bytes.length + " bytes, priority " + pcb.priority + ").");
+            } else {
+                _StdOut.putText("Process with pid " + pcb.pid + " loaded at " + pcb.base +
+                    " (" + bytes.length + " bytes, priority " + pcb.priority + ").");
+            }
         }
 
         public shellRun(args: string[]) {
@@ -725,6 +734,11 @@ module TSOS {
             if (pcb.state === "Terminated" || pcb.state === "Killed") {
                 _StdOut.putText("Process " + pid + " has " +
                     (pcb.state === "Killed" ? "been killed." : "terminated."));
+                return;
+            }
+
+            if (!_MemoryManager.ensureInMemory(pcb)) {
+                _StdOut.putText("Unable to roll in process " + pid + " from disk.");
                 return;
             }
 
@@ -766,11 +780,12 @@ module TSOS {
                 return;
             }
 
-            _StdOut.putText("PID  State");
+            _StdOut.putText("PID  State       Location");
             for (var i = 0; i < _MemoryManager.residentList.length; i++) {
                 var pcb = _MemoryManager.residentList[i];
                 _StdOut.advanceLine();
-                _StdOut.putText("  " + pcb.pid + "    " + pcb.state);
+                _StdOut.putText("  " + pcb.pid + "    " + pcb.state +
+                    "       " + pcb.location);
             }
         }
 
@@ -803,6 +818,7 @@ module TSOS {
             } else {
                 _Scheduler.removeFromReady(pcb);
                 pcb.state = "Killed";
+                _MemoryManager.freeProcess(pcb);
                 _Scheduler.reportMetrics(pcb, false);
                 Control.hostUpdatePcbDisplay();
             }
@@ -828,6 +844,7 @@ module TSOS {
                 }
                 _Scheduler.removeFromReady(pcb);
                 pcb.state = "Killed";
+                _MemoryManager.freeProcess(pcb);
                 _Scheduler.reportMetrics(pcb, false);
                 killed++;
             }

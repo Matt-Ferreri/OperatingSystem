@@ -4,7 +4,8 @@
 
      CPU scheduler with Round Robin (default), FCFS, and non-preemptive
      priority. runall places every resident program on the ready queue;
-     dispatch picks the next process according to _Schedule.
+     dispatch picks the next process according to _Schedule and rolls
+     disk-backed processes into memory before they run.
      ------------ */
 var TSOS;
 (function (TSOS) {
@@ -62,6 +63,7 @@ var TSOS;
             _CPU.Zflag = pcb.zFlag;
             _CPU.IR = pcb.ir;
             pcb.state = "Running";
+            pcb.location = "Memory";
             _CPU.isExecuting = true;
             _QuantumCount = 0;
             TSOS.Control.hostUpdateCpuDisplay();
@@ -104,7 +106,34 @@ var TSOS;
                 }
                 return;
             }
-            this.loadToCpu(this.pickNext());
+            // Skip processes that cannot be rolled into memory right now.
+            var skipped = [];
+            var next = null;
+            while (!_ReadyQueue.isEmpty()) {
+                var candidate = this.pickNext();
+                if (_MemoryManager && !_MemoryManager.ensureInMemory(candidate)) {
+                    if (_Kernel) {
+                        _Kernel.krnTrace("Failed to roll in PID " + candidate.pid);
+                    }
+                    candidate.state = "Ready";
+                    skipped[skipped.length] = candidate;
+                    continue;
+                }
+                next = candidate;
+                break;
+            }
+            for (var i = 0; i < skipped.length; i++) {
+                _ReadyQueue.enqueue(skipped[i]);
+            }
+            if (!next) {
+                _CurrentPCB = null;
+                _CPU.isExecuting = false;
+                _QuantumCount = 0;
+                TSOS.Control.hostUpdateCpuDisplay();
+                TSOS.Control.hostUpdatePcbDisplay();
+                return;
+            }
+            this.loadToCpu(next);
         }
         // Save the running process and run the next ready one.
         // If nothing else is waiting, the current process keeps the CPU.
